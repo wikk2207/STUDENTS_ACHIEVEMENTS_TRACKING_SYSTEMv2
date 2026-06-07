@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Student Messages{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1>Student Messages</h1>
+    <p class="text-muted mb-0">Review student problems and reply directly.</p>
+  </div>
+  <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
+</div>
+
+<style>
+  [data-theme="bw"] {
+    --bg: #fff;
+    --text: #000;
+    --primary: #000;
+    --secondary: #444;
+    --accent: #888;
+    --glass: #fff;
+    --neu-light: #fff;
+    --neu-dark: #000;
+    --border-glow-bg: #fff;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  [data-theme="bw"] .glass-panel,
+  [data-theme="bw"] .neu-card {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .btn,
+  [data-theme="bw"] .btn-primary-neu,
+  [data-theme="bw"] .btn-neu,
+  [data-theme="bw"] .form-control {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .text-muted,
+  [data-theme="bw"] .text-white-50 {
+    color: #444 !important;
+  }
+  [data-theme="bw"] .chat-bubble,
+  [data-theme="bw"] .student-thread {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+  }
+  .chat-bubble { white-space: pre-wrap; }
+  .student-thread.active { border-color: var(--primary) !important; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeSwitcher');
+  let bw = localStorage.getItem('saams-theme') === 'bw';
+  html.dataset.theme = bw ? 'bw' : 'light';
+  btn?.addEventListener('click', function() {
+    bw = !bw;
+    html.dataset.theme = bw ? 'bw' : 'light';
+    localStorage.setItem('saams-theme', bw ? 'bw' : 'light');
+  });
+});
+</script>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="glass-panel neu-card p-3">
+      <h5 class="mb-3"><i class="bi bi-inbox"></i> Inbox</h5>
+      <form method="get" class="mb-3 d-grid gap-2">
+        <input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Search student or message">
+        <select name="problem_type" class="form-select">
+          <option value="">All problem types</option>
+          {% for problem_type in problem_types %}
+          <option value="{{ problem_type }}" {% if filters.problem_type == problem_type %}selected{% endif %}>{{ problem_type }}</option>
+          {% endfor %}
+        </select>
+        <select name="priority" class="form-select">
+          <option value="">All priorities</option>
+          {% for priority in priorities %}
+          <option value="{{ priority }}" {% if filters.priority == priority %}selected{% endif %}>{{ priority }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" class="form-select">
+          <option value="">All statuses</option>
+          {% for status in statuses %}
+          <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-neu" type="submit"><i class="bi bi-funnel"></i> Filter</button>
+      </form>
+      <div class="d-grid gap-2">
+        {% for row in conversation_rows %}
+        {% set student = row.student %}
+        <a href="{{ url_for('mentor.messages', student_id=student.id, q=filters.q, problem_type=filters.problem_type, priority=filters.priority, status=filters.status) }}" class="student-thread btn btn-neu text-start {% if selected_student and selected_student.id == student.id %}active{% endif %}">
+          <span class="d-flex justify-content-between gap-2">
+            <strong>{{ student.full_name }}</strong>
+            {% if row.unread %}<span class="badge bg-danger">{{ row.unread }}</span>{% endif %}
+          </span>
+          <span class="d-block small text-muted">{{ row.meta.problem_type }} | {{ row.meta.priority }} | {{ row.status }}</span>
+          <span class="d-block small text-muted">{{ row.meta.subject }}</span>
+        </a>
+        {% else %}
+        <p class="text-muted mb-0">No matching student messages.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="glass-panel neu-card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h5 class="mb-1"><i class="bi bi-chat-dots"></i> Conversation</h5>
+          {% if selected_student %}<span class="text-muted small">{{ selected_student.full_name }}</span>{% endif %}
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <span class="status-badge">{{ conversation_status }}</span>
+          {% if selected_student %}
+          <form method="post" action="{{ url_for('mentor.message_status', student_id=selected_student.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ 'Open' if conversation_status == 'Resolved' else 'Resolved' }}">
+            <button class="btn btn-neu btn-sm" type="submit">{{ 'Reopen' if conversation_status == 'Resolved' else 'Mark Solved' }}</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      <div class="chat-history mb-3">
+        {% for row in messages %}
+        {% set m = row.message %}
+        {% set meta = row.meta %}
+        <div class="chat-bubble mb-2 p-3 {% if m.sender_id == current_user.id %}text-end bg-primary text-white{% else %}bg-light{% endif %}" style="max-width:75%;margin-left:{% if m.sender_id == current_user.id %}auto{% else %}0{% endif %};border-radius:1rem;">
+          <div class="small {% if m.sender_id == current_user.id %}text-white-50{% else %}text-muted{% endif %}">{{ m.sender.full_name }} | {{ m.created_at.strftime('%d %b %Y %H:%M') }}</div>
+          {% if meta.problem_type or meta.priority or meta.subject %}
+          <div class="small {% if m.sender_id == current_user.id %}text-white-50{% else %}text-muted{% endif %}">
+            {{ meta.problem_type or 'Message' }}{% if meta.priority %} | {{ meta.priority }}{% endif %}{% if meta.subject %} | {{ meta.subject }}{% endif %}
+          </div>
+          {% endif %}
+          <div>{{ meta.body }}</div>
+          {% if meta.attachment %}
+          <a class="{% if m.sender_id == current_user.id %}text-white{% endif %}" href="{{ url_for('static', filename=meta.attachment) }}" target="_blank" rel="noopener"><i class="bi bi-paperclip"></i> {{ meta.attachment_name }}</a>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">Select a student conversation.</div>
+        {% endfor %}
+      </div>
+      {% if selected_student %}
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="body" class="form-label">Reply</label>
+        <div class="d-grid gap-2">
+          <textarea name="body" id="body" class="form-control" rows="3" required placeholder="Write your reply"></textarea>
+          <div class="d-flex gap-2 align-items-end">
+            <input type="file" name="attachment" class="form-control">
+            <button class="btn btn-primary-neu" type="submit"><i class="bi bi-reply"></i> Reply</button>
+          </div>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

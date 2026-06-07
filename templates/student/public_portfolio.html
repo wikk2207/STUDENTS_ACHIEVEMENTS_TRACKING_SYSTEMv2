@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% set hide_sidebar = true %}
+{% block title %}Public Portfolio{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-end mb-3">
+    <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
+  </div>
+  {# Theme Switcher Script #}
+  <style>
+    [data-theme="bw"] {
+      --bg: #fff;
+      --text: #000;
+      --primary: #000;
+      --secondary: #444;
+      --accent: #888;
+      --glass: #fff;
+      --neu-light: #fff;
+      --neu-dark: #000;
+      --border-glow-bg: #fff;
+      background: #fff !important;
+      color: #000 !important;
+    }
+    [data-theme="bw"] .glass-panel,
+    [data-theme="bw"] .neu-card,
+    [data-theme="bw"] .profile-card-details,
+    [data-theme="bw"] .card-3d {
+      background: #fff !important;
+      color: #000 !important;
+      border: 2px solid #000 !important;
+      box-shadow: none !important;
+    }
+    [data-theme="bw"] .btn,
+    [data-theme="bw"] .btn-primary-neu,
+    [data-theme="bw"] .btn-secondary-neu,
+    [data-theme="bw"] .btn-neu {
+      background: #fff !important;
+      color: #000 !important;
+      border: 2px solid #000 !important;
+      box-shadow: none !important;
+    }
+    [data-theme="bw"] .status-badge {
+      background: #fff !important;
+      color: #000 !important;
+      border: 1px solid #000 !important;
+    }
+  </style>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const html = document.documentElement;
+    const btn = document.getElementById('themeSwitcher');
+    // Only two themes: default and black & white
+    let bw = false;
+    const saved = localStorage.getItem('saams-theme');
+    if (saved === 'bw') {
+      html.dataset.theme = 'bw';
+      bw = true;
+    } else {
+      html.dataset.theme = 'light';
+      bw = false;
+    }
+    btn?.addEventListener('click', function() {
+      bw = !bw;
+      html.dataset.theme = bw ? 'bw' : 'light';
+      localStorage.setItem('saams-theme', bw ? 'bw' : 'light');
+    });
+  });
+  </script>
+  <div class="glass-panel neu-card text-center p-5 mb-4">
+    {% if student.profile_photo %}<img src="{{ url_for('static', filename=student.profile_photo) }}" class="rounded-circle mb-3" width="100" alt="">{% endif %}
+    <h1>{{ student.full_name }}</h1>
+    <p>{{ student.department }} · Year {{ student.year or 'N/A' }}</p>
+    <p class="display-6 text-primary">{{ points }} Achievement Points</p>
+  </div>
+  <h3>Verified Achievements</h3>
+  <div class="row g-3">
+    {% for a in achievements %}
+    <div class="col-md-6"><div class="glass-panel neu-card p-3"><h5>{{ a.title }}</h5><p class="mb-0">{{ a.category }} · {{ a.level }} · {{ a.rank }}</p></div></div>
+    {% else %}<p>No approved achievements yet.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+

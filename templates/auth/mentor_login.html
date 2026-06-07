@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% set hide_sidebar = true %}
+{% block title %}Mentor Login{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-card surface-card">
+    <div class="mb-3">
+      <span class="badge bg-primary-subtle text-primary"><i class="bi bi-shield-lock"></i> Faculty access</span>
+      <h2 class="mt-2 mb-1">Mentor sign in</h2>
+      <p class="text-muted small mb-0">Email and password, then OTP verification. Only whitelisted mentors can access the panel.</p>
+    </div>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        {{ form.email.label(class="form-label") }}
+        {{ form.email(class="form-control", placeholder="mentor@college.edu", type="email", data_voice_field="email", autocomplete="username") }}
+        {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="mb-3">
+        {{ form.password.label(class="form-label") }}
+        {{ form.password(class="form-control", placeholder="Password", data_voice_field="password", autocomplete="current-password") }}
+        <div class="form-text small">Password is never read aloud by voice.</div>
+        {% for e in form.password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="mb-3 form-check">
+        {{ form.remember(class="form-check-input") }}
+        {{ form.remember.label(class="form-check-label") }}
+      </div>
+      {{ form.submit(class="btn btn-primary w-100", value="Continue to OTP") }}
+    </form>
+    <div class="text-center mt-3 small">
+      <a href="{{ url_for('auth.login') }}">Student OTP login</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

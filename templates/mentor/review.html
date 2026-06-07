@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Review Submission{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Review: {{ achievement.title }}</h1></div>
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="glass-panel neu-card card-3d">
+      <h5>Submission Details</h5>
+      <p><strong>Student:</strong> {{ achievement.student.full_name }} ({{ achievement.student.email }})</p>
+      <p><strong>Category:</strong> {{ achievement.category }} · {{ achievement.level }}</p>
+      <p><strong>Event:</strong> {{ achievement.event_name or '—' }}</p>
+      <p><strong>Organizer:</strong> {{ achievement.organizer or '—' }}</p>
+      <p><strong>Date:</strong> {{ achievement.event_date or '—' }}</p>
+      <p><strong>Rank:</strong> {{ achievement.rank or '—' }}</p>
+      <p>{{ achievement.description }}</p>
+      {% if achievement.certificate %}
+      <a href="{{ url_for('static', filename=achievement.certificate.file_path) }}" target="_blank" class="btn btn-neu btn-sm">View Certificate</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    {% if achievement.certificate %}
+    {% set cert = achievement.certificate %}
+    {% set is_fake = cert.verification_status == 'Suspected Fake' %}
+    {% set is_ok = cert.verification_status in ['Verified', 'Likely Authentic'] %}
+    <div class="glass-panel neu-card mb-3 scanner-panel card-3d {% if is_fake %}scanner-fake{% elif is_ok %}scanner-ok{% endif %}">
+      <h5><i class="bi bi-shield-lock"></i> Certificate Authenticity Scanner</h5>
+      <div class="scanner-verdict mb-2">
+        {% if is_ok %}
+        <span class="badge bg-success fs-6"><i class="bi bi-check-circle"></i> Likely genuine — matches student</span>
+        {% elif is_fake %}
+        <span class="badge bg-danger fs-6"><i class="bi bi-exclamation-octagon"></i> Suspected fake certificate</span>
+        {% else %}
+        <span class="badge bg-warning text-dark fs-6"><i class="bi bi-eye"></i> Manual review required</span>
+        {% endif %}
+      </div>
+      <div class="row g-2 small">
+        <div class="col-6"><strong>Status:</strong> {{ cert.verification_status }}</div>
+        <div class="col-6"><strong>Fraud Risk:</strong> {{ cert.fraud_risk or '—' }}</div>
+        <div class="col-6"><strong>Name Match:</strong> {{ (cert.match_score * 100)|round(1) }}%</div>
+        <div class="col-6"><strong>Authenticity:</strong> {{ ((cert.authenticity_score or 0) * 100)|round(1) }}%</div>
+        <div class="col-12"><strong>Detected Name:</strong> {{ cert.detected_name or '—' }}</div>
+        <div class="col-12"><strong>Detected Event:</strong> {{ cert.detected_event or '—' }}</div>
+      </div>
+      {% if cert.fraud_notes %}
+      <details class="mt-2"><summary class="small">Scanner analysis notes</summary><pre class="small mb-0">{{ cert.fraud_notes }}</pre></details>
+      {% endif %}
+      <details class="mt-2"><summary class="small">Extracted OCR text</summary><pre class="small" data-ocr-text>{{ cert.extracted_text[:1500] }}</pre></details>
+    </div>
+    {% endif %}
+    <div class="glass-panel neu-card card-3d">
+      <form method="post">{{ form.hidden_tag() }}
+        {{ form.mentor_comment.label(class="form-label") }}
+        {{ form.mentor_comment(class="form-control", rows=4, data_voice_field="mentor_comment") }}
+        <div class="d-flex gap-2 mt-3">
+          {{ form.submit_approve(class="btn btn-primary-neu btn-approve") }}
+          {{ form.submit_reject(class="btn btn-danger btn-reject") }}
+          <a href="{{ url_for('mentor.submissions') }}" class="btn btn-neu">Back</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

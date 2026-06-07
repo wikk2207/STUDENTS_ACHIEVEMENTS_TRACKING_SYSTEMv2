@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% set hide_sidebar = true %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="auth-card glass-panel neu-card card-3d">
+  {% include 'components/voice_form_toggle.html' %}
+  <h2 class="text-center mb-2">Login with OTP</h2>
+  <p class="text-center text-muted small mb-4">Enter your email — we will send a 6-digit code to sign in.</p>
+
+  {% if mail_configured %}
+  <p class="alert alert-success py-2 small"><i class="bi bi-envelope-check"></i> OTP will be sent to your email.</p>
+  {% else %}
+  <p class="alert alert-info py-2 small"><i class="bi bi-info-circle"></i> Email not configured — OTP will appear on the next screen.</p>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      {{ form.email.label(class="form-label") }}
+      {{ form.email(class="form-control", placeholder="you@college.edu", data_voice_field="email", type="email") }}
+      {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    {{ form.submit(class="btn btn-primary-neu w-100 mb-2", id="sendOtpBtn") }}
+  </form>
+  <div class="text-center mt-3">
+    <a href="{{ url_for('auth.forgot_password') }}">Forgot password?</a> ·
+    <a href="{{ url_for('auth.register') }}">Create account</a> ·
+    <a href="{{ url_for('auth.mentor_login') }}">Mentor login</a>
+  </div>
+</div>
+{% endblock %}

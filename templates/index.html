@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% set hide_sidebar = true %}
+{% block title %}Home{% endblock %}
+{% block body_class %}landing-page{% endblock %}
+
+{% block content %}
+<!-- Orbitron font from Google Fonts -->
+<!-- Orbitron font already loaded in base.html -->
+<style>
+  .orbitron-text {
+    font-family: 'Orbitron', sans-serif !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 0 12px #d99df3e7, 0 0 2px #fff;
+    letter-spacing: 1px;
+    position: relative;
+    z-index: 1;
+  }
+</style>
+<section class="hero-section">
+  <div class="container">
+    <div class="row align-items-center min-vh-100 py-5">
+      <div class="col-lg-6">
+        <span class="badge glass-badge mb-3 orbitron-text">AI-Powered • Voice Enabled</span>
+        <h1 class="hero-title orbitron-text">Student Achievement &amp; Activity Management System</h1>
+        <p class="hero-subtitle">Submit achievements, verify certificates with OCR, and track your academic journey — hands-free with voice commands.</p>
+        <div class="hero-actions d-flex flex-wrap gap-3 mt-4">
+          <a href="{{ url_for('auth.login') }}" class="btn btn-primary-neu btn-lg" data-voice-target="login">Login</a>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-secondary-neu btn-lg" data-voice-target="register">Register</a>
+        </div>
+        <div class="voice-commands-landing glass-panel mt-4 p-3" data-border-glow data-border-glow-radius="22" data-border-glow-glow-radius="28">
+          <p class="mb-2 fw-semibold"><i class="bi bi-mic-fill"></i> Try voice commands</p>
+          <ul class="voice-cmd-list mb-0 small">
+            <li>"Login"</li>
+            <li>"Register me"</li>
+            <li>"Send OTP"</li>
+            <li>"Turn voice off"</li>
+          </ul>
+          <p class="voice-hint mt-2 mb-0 small text-muted">Use the bottom <strong>Voice ON</strong> toggle, then say &quot;Login&quot; or &quot;Register&quot;</p>
+        </div>
+      </div>
+      <div class="col-lg-6 text-center">
+        <img src="https://illustrations.popsy.co/amber/remote-work.svg" alt="Student achievements illustration" class="hero-illustration img-fluid" width="480">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features-section py-5">
+  <div class="container">
+    <h2 class="section-title text-center mb-5">Platform Features</h2>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="feature-card glass-panel neu-card" data-border-glow data-border-glow-animated="true">
+          <i class="bi bi-mic-fill feature-icon"></i>
+          <h3>Voice Assistant</h3>
+          <p>Navigate, fill forms, and upload certificates using natural voice commands on every page.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card glass-panel neu-card" data-border-glow data-border-glow-animated="true">
+          <i class="bi bi-shield-check feature-icon"></i>
+          <h3>OCR Verification</h3>
+          <p>AI-powered certificate scanning with name matching and confidence scoring.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card glass-panel neu-card" data-border-glow data-border-glow-animated="true">
+          <i class="bi bi-graph-up-arrow feature-icon"></i>
+          <h3>Analytics &amp; Reports</h3>
+          <p>Dashboards, leaderboards, PDF portfolios, and Excel exports for students and mentors.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer glass-panel mt-5">
+  <div class="container py-4 text-center">
+    <p class="mb-0">&copy; 2026 SAAMS — Student Achievement and Activity Management System</p>
+  </div>
+</footer>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/landing-voice-nav.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof gsap !== 'undefined') {
+      gsap.from('.hero-title', { opacity: 0, y: 40, duration: 1, ease: 'power3.out', delay: 0.1 });
+      gsap.from('.hero-subtitle', { opacity: 0, y: 30, duration: 1, delay: 0.2 });
+      gsap.from('.hero-actions', { opacity: 0, y: 20, duration: 0.8, delay: 0.4 });
+      gsap.from('.feature-card, .border-glow-card.feature-card', { opacity: 0, y: 30, stagger: 0.15, duration: 0.7, delay: 0.5 });
+    }
+    /* Welcome + guided flow handled by voice-guide.js */
+  });
+</script>
+{% endblock %}

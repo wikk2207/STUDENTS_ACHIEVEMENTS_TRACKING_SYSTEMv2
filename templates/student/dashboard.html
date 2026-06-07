@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% from "components/profile_card.html" import profile_card %}
+{% block title %}Student Dashboard{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 animate-in">
+  <div>
+    <h1 class="mb-0">Welcome back, {{ current_user.full_name.split(' ')[0] }}!</h1>
+    <p class="text-muted mb-0">Your achievements are saved — pick up where you left off</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('student.achievement_add') }}" class="btn btn-primary-neu"><i class="bi bi-plus-lg"></i> Add Achievement</a>
+    <a href="{{ url_for('student.activity_add') }}" class="btn btn-secondary-neu">Add Activity</a>
+    <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
+  </div>
+{# Theme Switcher Script #}
+<style>
+  [data-theme="bw"] {
+    --bg: #fff;
+    --text: #000;
+    --primary: #000;
+    --secondary: #444;
+    --accent: #888;
+    --glass: #fff;
+    --neu-light: #fff;
+    --neu-dark: #000;
+    --border-glow-bg: #fff;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  [data-theme="bw"] .glass-panel,
+  [data-theme="bw"] .neu-card,
+  [data-theme="bw"] .profile-card-details,
+  [data-theme="bw"] .card-3d {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .btn,
+  [data-theme="bw"] .btn-primary-neu,
+  [data-theme="bw"] .btn-secondary-neu,
+  [data-theme="bw"] .btn-neu {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .status-badge {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeSwitcher');
+  let bw = false;
+  const saved = localStorage.getItem('saams-theme');
+  if (saved === 'bw') {
+    html.dataset.theme = 'bw';
+    bw = true;
+  } else {
+    html.dataset.theme = 'light';
+    bw = false;
+  }
+  if (btn) {
+    btn.addEventListener('click', function() {
+      bw = !bw;
+      html.dataset.theme = bw ? 'bw' : 'light';
+      localStorage.setItem('saams-theme', bw ? 'bw' : 'light');
+    });
+  }
+});
+</script>
+</div>
+
+<div class="profile-card-layout">
+  {{ profile_card(
+    current_user,
+    status=stats.points ~ ' pts · ' ~ stats.approved ~ ' approved',
+    contact_text='Edit Profile',
+    contact_href=url_for('auth.profile'),
+    compact=true,
+    points=stats.points
+  ) }}
+  <div class="profile-card-details profile-glass glass-panel neu-card card-3d p-4">
+    <h5 class="mb-3"><i class="bi bi-person-vcard"></i> Your Details</h5>
+    <div class="row g-2 small">
+      <div class="col-sm-6"><span class="text-muted">Email</span><br><strong>{{ current_user.email }}</strong></div>
+      <div class="col-sm-6"><span class="text-muted">Mobile</span><br><strong>{{ current_user.mobile or '—' }}</strong></div>
+      <div class="col-sm-6"><span class="text-muted">Department</span><br><strong>{{ current_user.department or '—' }}</strong></div>
+      <div class="col-sm-6"><span class="text-muted">Year / Roll</span><br><strong>{{ current_user.year or '—' }} · {{ current_user.roll_number or '—' }}</strong></div>
+      <div class="col-sm-6"><span class="text-muted">Member since</span><br><strong>{{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else '—' }}</strong></div>
+      <div class="col-sm-6"><span class="text-muted">Achievement Points</span><br><strong class="text-primary">{{ stats.points }} pts</strong></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-4">
+      <a href="{{ url_for('auth.profile') }}" class="btn btn-neu btn-sm">Edit Profile</a>
+      <a href="{{ url_for('student.achievements_list') }}" class="btn btn-primary-neu btn-sm">View History</a>
+      <a href="{{ url_for('student.public_portfolio') }}" class="btn btn-secondary-neu btn-sm">Portfolio</a>
+    </div>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card glass-panel neu-card card-3d"><h3>{{ stats.total_achievements }}</h3><p>Total Achievements</p></div>
+  <div class="kpi-card glass-panel neu-card card-3d"><h3>{{ stats.total_activities }}</h3><p>Total Activities</p></div>
+  <div class="kpi-card glass-panel neu-card card-3d"><h3>{{ stats.pending }}</h3><p>Pending Review</p></div>
+  <div class="kpi-card glass-panel neu-card card-3d"><h3>{{ stats.approved }}</h3><p>Approved</p></div>
+  <div class="kpi-card glass-panel neu-card card-3d"><h3>{{ stats.rejected }}</h3><p>Rejected</p></div>
+  <div class="kpi-card glass-panel neu-card card-3d"><h3>{{ stats.points }}</h3><p>Achievement Points</p></div>
+</div>
+
+{% if badges %}
+<div class="mb-4">
+  {% for b in badges %}<span class="badge bg-primary me-1">{{ b }}</span>{% endfor %}
+</div>
+{% endif %}
+
+<div class="glass-panel neu-card mb-4 p-3">
+  <h5 class="mb-3">Quick Actions</h5>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('student.achievement_add') }}" class="btn btn-neu btn-sm">Add Achievement</a>
+    <a href="{{ url_for('student.activity_add') }}" class="btn btn-neu btn-sm">Add Activity</a>
+    <a href="{{ url_for('student.achievement_add') }}" class="btn btn-neu btn-sm">Upload Certificate</a>
+    <a href="{{ url_for('student.achievements_list') }}" class="btn btn-neu btn-sm">View History</a>
+    <a href="{{ url_for('student.portfolio_pdf') }}" class="btn btn-neu btn-sm">Download Portfolio</a>
+    <a href="{{ url_for('student.reports') }}" class="btn btn-neu btn-sm">Reports</a>
+  </div>
+</div>
+
+{% if notifications %}
+<div class="glass-panel neu-card mb-4 p-3">
+  <h5><i class="bi bi-bell"></i> Recent Notifications</h5>
+  <ul class="list-unstyled mb-0">
+    {% for n in notifications %}
+    <li class="py-2 border-bottom border-secondary-subtle"><strong>{{ n.title }}</strong> — {{ n.message[:80] }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="glass-panel neu-card chart-container"><h5>Category Distribution</h5><canvas id="categoryChart"></canvas></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="glass-panel neu-card chart-container"><h5>Status Breakdown</h5><canvas id="statusChart"></canvas></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="glass-panel neu-card chart-container"><h5>Level Distribution</h5><canvas id="levelChart"></canvas></div>
+  </div>
+  <div class="col-lg-12">
+    <div class="glass-panel neu-card chart-container"><h5>Monthly Activity Trend</h5><canvas id="monthlyChart"></canvas></div>
+  </div>
+</div>
+
+{# Category Chart Script #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  // Category Chart
+  const categoryData = {
+    labels: {{ category_counts.keys()|list|tojson }},
+    datasets: [{
+      data: {{ category_counts.values()|list|tojson }},
+      backgroundColor: {{ category_colors_list|tojson }},
+    }]
+  };
+  const ctx = document.getElementById('categoryChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: categoryData,
+    options: {
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+
+  // Status Breakdown Chart
+  const statusData = {
+    labels: {{ status_counts.keys()|list|tojson }},
+    datasets: [{
+      data: {{ status_counts.values()|list|tojson }},
+      backgroundColor: {{ status_colors_list|tojson }},
+    }]
+  };
+  const statusCtx = document.getElementById('statusChart').getContext('2d');
+  new Chart(statusCtx, {
+    type: 'doughnut',
+    data: statusData,
+    options: {
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+
+  // Level Distribution Chart
+  const levelData = {
+    labels: {{ level_counts.keys()|list|tojson }},
+    datasets: [{
+      data: {{ level_counts.values()|list|tojson }},
+      backgroundColor: {{ level_colors_list|tojson }},
+    }]
+  };
+  const levelCtx = document.getElementById('levelChart').getContext('2d');
+  new Chart(levelCtx, {
+    type: 'doughnut',
+    data: levelData,
+    options: {
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+
+});
+  // Monthly Activity Trend Chart
+  const monthlyData = {
+    labels: {{ monthly_labels|tojson }},
+    datasets: [{
+      label: 'Achievements',
+      data: {{ monthly_data|tojson }},
+      backgroundColor: '#2196f3',
+      borderColor: '#1976d2',
+      fill: true,
+      tension: 0.3,
+    }]
+  };
+  const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+  new Chart(monthlyCtx, {
+    type: 'line',
+    data: monthlyData,
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'Month' } },
+        y: { title: { display: true, text: 'Achievements' }, beginAtZero: true, precision: 0 }
+      }
+    }
+  });
+</script>
+
+<div class="glass-panel neu-card mt-4">
+  <h5>Recent Submissions</h5>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Mentor Comment</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for a in recent %}
+        <tr>
+          <td>{{ a.title }}</td>
+          <td>{{ a.category }}</td>
+          <td><span class="status-badge status-{{ a.status|replace(' ', '-') }}">{{ a.status }}</span></td>
+          <td class="small">{{ a.mentor_comment[:60] if a.mentor_comment else '—' }}{% if a.mentor_comment and a.mentor_comment|length > 60 %}…{% endif %}</td>
+          <td>{{ a.created_at.strftime('%d %b %Y') if a.created_at else '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted">No submissions yet. Say "add achievement" to get started.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="glass-panel neu-card mt-4">
+  <h5><i class="bi bi-file-earmark-medical"></i> Uploaded Certificates</h5>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>File Name</th>
+          <th>Type</th>
+          <th>Uploaded At</th>
+          <th>Preview</th>
+          <th>Download</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set all_certs = [] %}
+        {% for a in recent %}
+          {% if a.certificate %}
+            {% set _ = all_certs.append(a.certificate) %}
+          {% endif %}
+        {% endfor %}
+        {% for a in recent %}
+          {% if a.certificate and a.certificate not in all_certs %}
+            {% set _ = all_certs.append(a.certificate) %}
+          {% endif %}
+        {% endfor %}
+        {% for cert in current_user.achievements if cert.certificate %}
+          {% if cert.certificate not in all_certs %}
+            {% set _ = all_certs.append(cert.certificate) %}
+          {% endif %}
+        {% endfor %}
+        {% for cert in all_certs %}
+        <tr>
+          <td>{{ cert.file_name }}</td>
+          <td>{{ cert.file_type|upper }}</td>
+          <td>{{ cert.uploaded_at.strftime('%d %b %Y') if cert.uploaded_at else '' }}</td>
+          <td>
+            {% if cert.file_type in ['pdf'] %}
+              <a href="{{ url_for('static', filename=cert.file_path) }}" target="_blank" class="btn btn-sm btn-primary">Preview</a>
+            {% elif cert.file_type in ['jpg', 'jpeg', 'png', 'gif', 'webp'] %}
+              <a href="{{ url_for('static', filename=cert.file_path) }}" target="_blank" class="btn btn-sm btn-primary">Preview</a>
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('static', filename=cert.file_path) }}" download class="btn btn-sm btn-secondary">Download</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted">No certificates uploaded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>document.addEventListener('DOMContentLoaded', initStudentCharts);</script>{% endblock %}

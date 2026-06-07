@@ -1,0 +1,149 @@
+"""
+Certificate Scanner Integration Guide
+Adds 20-level verification without changing existing code
+"""
+
+# STEP 1: Register Blueprint in app/__init__.py
+# Add these lines in create_app() function:
+
+"""
+from app.routes.cert_dashboard import bp as cert_dashboard_bp
+app.register_blueprint(cert_dashboard_bp)
+"""
+
+# STEP 2: Update existing certificate upload to trigger scanner
+# In app/routes/student.py or where certificates are uploaded:
+
+"""
+@bp.route("/achievement/<int:aid>/certificate", methods=["POST"])
+@student_required
+def upload_certificate(aid):
+    # ... existing upload code ...
+    
+    # Add this AFTER certificate is saved:
+    from app.services.cert_verification import CertificateScanner
+    
+    scanner = CertificateScanner(cert)
+    report = scanner.run_full_scan()
+    
+    # Store verification results
+    cert.authenticity_score = report['final_score']
+    cert.fraud_risk = 'Low' if report['final_score'] >= 70 else 'High'
+    db.session.commit()
+    
+    return redirect(...)
+"""
+
+# STEP 3: Mentor views the dashboard
+# NEW ENDPOINTS (No existing code changed):
+
+"""
+GET  /api/cert-verify/pending              - List pending certificates
+POST /api/cert-verify/scan/<cert_id>       - Scan certificate with 20 levels
+GET  /api/cert-verify/dashboard/<cert_id>  - View full verification report
+GET  /api/cert-verify/summary               - Summary of all certificates
+POST /api/cert-verify/approve/<cert_id>    - Approve certificate
+POST /api/cert-verify/reject/<cert_id>     - Reject certificate
+GET  /api/cert-verify/trust-score/<student_id> - Student trust score
+GET  /api/cert-verify/stats                - Verification statistics
+"""
+
+# STEP 4: Features added (NO breaking changes):
+
+"""
+✅ Level 1:  OCR Extraction
+✅ Level 2:  Student Identity Matching
+✅ Level 3:  Fuzzy Name Detection
+✅ Level 4:  Event Validation
+✅ Level 5:  Certificate ID Verification
+✅ Level 6:  QR Code Scanning
+✅ Level 7:  Duplicate Detection
+✅ Level 8:  Template Verification
+✅ Level 9:  Signature Detection
+✅ Level 10: Seal/Logo Detection
+✅ Level 11: Date Validation
+✅ Level 12: Achievement Consistency Check
+✅ Level 13: Image Manipulation Detection
+✅ Level 14: Font Consistency Check
+✅ Level 15: Metadata Analysis
+✅ Level 16: AI Risk Score (Final)
+✅ Level 17: Mentor Recommendation
+✅ Level 18: Portfolio Timeline Check
+✅ Level 19: Approval Chain Tracking
+✅ Level 20: Achievement Trust Score
+"""
+
+# How to integrate into Flask app:
+
+def integrate_certificate_scanner():
+    """
+    Add this to app/__init__.py in create_app() function
+    """
+    
+    # 1. Import blueprint
+    from app.routes.cert_dashboard import bp as cert_dashboard_bp
+    
+    # 2. Register blueprint
+    app.register_blueprint(cert_dashboard_bp)
+    
+    # Done! No other changes needed.
+
+
+# USAGE EXAMPLES:
+
+"""
+# 1. Run verification on certificate upload
+from app.services.cert_verification import CertificateScanner
+
+cert = Certificate.query.get(cert_id)
+scanner = CertificateScanner(cert)
+report = scanner.run_full_scan()
+print(f"AI Score: {report['final_score']}")
+print(f"Recommendation: {report['recommendation']}")
+
+
+# 2. Check student trust score
+curl -X GET http://localhost:5000/api/cert-verify/trust-score/5
+
+
+# 3. View certificate dashboard
+curl -X GET http://localhost:5000/api/cert-verify/dashboard/3
+
+
+# 4. Get pending certificates
+curl -X GET http://localhost:5000/api/cert-verify/pending
+
+
+# 5. Approve/Reject certificate
+curl -X POST http://localhost:5000/api/cert-verify/approve/3
+curl -X POST http://localhost:5000/api/cert-verify/reject/3 \
+    -H "Content-Type: application/json" \
+    -d '{"reason": "Name mismatch detected"}'
+"""
+
+# WHAT'S NOT CHANGED:
+"""
+✅ Existing certificate upload still works
+✅ Student dashboard unchanged
+✅ Achievements functionality unchanged
+✅ Database structure preserved
+✅ No breaking changes
+✅ No errors in existing code
+"""
+
+# NEW DATABASE FIELDS (already exist in Certificate model):
+"""
+- authenticity_score (updated with AI score)
+- fraud_risk (updated with risk level)
+- fraud_notes (stores verification details)
+- file_hash (for duplicate detection)
+"""
+
+# NEXT STEPS to integrate:
+"""
+1. Copy cert_verification.py to app/services/
+2. Copy cert_dashboard.py to app/routes/
+3. Update app/__init__.py to register blueprint
+4. (Optional) Add trigger in certificate upload route
+5. Test via API endpoints
+"""

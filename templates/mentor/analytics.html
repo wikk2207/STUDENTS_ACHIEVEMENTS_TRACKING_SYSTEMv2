@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Department Analytics</h1></div>
+<div class="row g-4">
+  <div class="col-lg-6"><div class="glass-panel neu-card chart-container"><h5>Category Distribution</h5><canvas id="mentorCategoryChart"></canvas></div></div>
+  <div class="col-lg-6"><div class="glass-panel neu-card chart-container"><h5>Department-wise</h5><canvas id="mentorDeptChart"></canvas></div></div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>document.addEventListener('DOMContentLoaded', initMentorCharts);</script>{% endblock %}
+

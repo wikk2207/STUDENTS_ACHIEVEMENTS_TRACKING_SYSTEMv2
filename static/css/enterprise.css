@@ -1,0 +1,11 @@
+/* Enterprise UI polish */
+body { font-family: Inter, "Plus Jakarta Sans", system-ui, sans-serif; }
+.glass-panel { backdrop-filter: blur(12px); }
+.command-bar-wrap { position: relative; }
+.command-bar-results {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+  background: var(--surface, #fff); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  padding: .35rem; margin-top: 4px;
+}
+.command-item { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: .5rem .75rem; border-radius: 6px; }
+.command-item:hover { background: rgba(124,58,237,.08); }

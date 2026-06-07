@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <h1>Reports &amp; Export</h1>
+  <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
+</div>
+{# Theme Switcher Script #}
+<style>
+  [data-theme="bw"] {
+    --bg: #fff;
+    --text: #000;
+    --primary: #000;
+    --secondary: #444;
+    --accent: #888;
+    --glass: #fff;
+    --neu-light: #fff;
+    --neu-dark: #000;
+    --border-glow-bg: #fff;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  [data-theme="bw"] .glass-panel,
+  [data-theme="bw"] .neu-card,
+  [data-theme="bw"] .profile-card-details,
+  [data-theme="bw"] .card-3d {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .btn,
+  [data-theme="bw"] .btn-primary-neu,
+  [data-theme="bw"] .btn-secondary-neu,
+  [data-theme="bw"] .btn-neu {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .status-badge {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeSwitcher');
+  // Only two themes: default and black & white
+  let bw = false;
+  const saved = localStorage.getItem('saams-theme');
+  if (saved === 'bw') {
+    html.dataset.theme = 'bw';
+    bw = true;
+  } else {
+    html.dataset.theme = 'light';
+    bw = false;
+  }
+  btn?.addEventListener('click', function() {
+    bw = !bw;
+    html.dataset.theme = bw ? 'bw' : 'light';
+    localStorage.setItem('saams-theme', bw ? 'bw' : 'light');
+  });
+});
+</script>
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="glass-panel neu-card h-100 text-center p-4">
+      <i class="bi bi-file-pdf fs-1 text-primary"></i>
+      <h5 class="mt-3">Portfolio PDF</h5>
+      <a href="{{ url_for('student.portfolio_pdf') }}" class="btn btn-primary-neu mt-2">Download PDF</a>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="glass-panel neu-card h-100 text-center p-4">
+      <i class="bi bi-file-excel fs-1 text-primary"></i>
+      <h5 class="mt-3">Excel Export</h5>
+      <a href="{{ url_for('student.export_excel_route') }}" class="btn btn-primary-neu mt-2">Download Excel</a>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="glass-panel neu-card h-100 text-center p-4">
+      <i class="bi bi-share fs-1 text-primary"></i>
+      <h5 class="mt-3">Public Portfolio</h5>
+      <a href="{{ url_for('student.public_portfolio') }}" class="btn btn-secondary-neu mt-2">View Portfolio</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

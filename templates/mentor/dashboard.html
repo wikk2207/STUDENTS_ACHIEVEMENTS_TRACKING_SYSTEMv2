@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Mentor Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Mentor Dashboard</h1>
+  <p class="text-muted">Review submissions and export student data</p>
+</div>
+<div class="kpi-grid">
+  <div class="kpi-card surface-card"><h3>{{ stats.students }}</h3><p>Students</p></div>
+  <div class="kpi-card surface-card"><h3>{{ stats.certs_uploaded }}</h3><p>Certificates</p></div>
+  <div class="kpi-card surface-card"><h3>{{ stats.pending }}</h3><p>Pending</p></div>
+  <div class="kpi-card surface-card"><h3>{{ stats.suspected_fake }}</h3><p>Suspected Fake</p></div>
+</div>
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('mentor.export_full_dataset') }}" class="btn btn-primary">Full Dataset (Excel)</a>
+  <a href="{{ url_for('mentor.submissions') }}" class="btn btn-outline-secondary">Submissions</a>
+  <a href="{{ url_for('mentor.reports') }}" class="btn btn-outline-secondary">Reports</a>
+</div>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="surface-card p-4">
+      <h5>Pending submissions</h5>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Student</th><th>Title</th><th></th></tr></thead>
+        <tbody>
+          {% for a in recent_pending %}
+          <tr>
+            <td>{{ a.student.full_name }}</td>
+            <td>{{ a.title }}</td>
+            <td><a href="{{ url_for('mentor.review_submission', aid=a.id) }}" class="btn btn-sm btn-primary">Review</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="text-muted">No pending items</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="surface-card p-4">
+      <h5>Top performers</h5>
+      <ol class="mb-0">
+        {% for t in top_students %}
+        <li>{{ t.student.full_name }} — {{ t.points }} pts</li>
+        {% else %}
+        <li class="text-muted">No data yet</li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+</div>
+{% endblock %}

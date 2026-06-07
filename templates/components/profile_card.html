@@ -1,0 +1,36 @@
+{# Profile card widget — used on student dashboard and profile page #}
+{% macro profile_card(user, status='', contact_text='', contact_href='#', compact=false, points=none) %}
+<article class="profile-card-widget profile-glass glass-panel neu-card card-3d {% if compact %}profile-card-compact{% endif %}"
+         data-profile-card data-border-glow>
+  <div class="profile-card-inner">
+    <div class="profile-card-avatar-wrap">
+      {% if user.profile_photo %}
+      <img src="{{ url_for('static', filename=user.profile_photo) }}" alt="{{ user.full_name }}" class="profile-card-avatar">
+      {% else %}
+      <span class="profile-card-avatar profile-card-avatar-fallback" aria-hidden="true">{{ user.full_name[0]|upper }}</span>
+      {% endif %}
+    </div>
+    <div class="profile-card-body">
+      <h2 class="profile-card-name">{{ user.full_name }}</h2>
+      <p class="profile-card-role text-muted mb-1">
+        {% if user.is_mentor %}Mentor{% else %}Student{% endif %}
+        {% if user.department %} · {{ user.department }}{% endif %}
+      </p>
+      {% if status %}
+      <p class="profile-card-status small mb-2">{{ status }}</p>
+      {% endif %}
+      {% if points is not none %}
+      <p class="profile-card-points mb-2"><span class="profile-points-badge">{{ points }}</span> achievement points</p>
+      {% endif %}
+      {% if user.email %}
+      <p class="profile-card-email small text-muted mb-0">{{ user.email }}</p>
+      {% endif %}
+    </div>
+    {% if contact_text and contact_href %}
+    <footer class="profile-card-footer mt-3">
+      <a href="{{ contact_href }}" class="btn btn-primary-neu btn-sm w-100">{{ contact_text }}</a>
+    </footer>
+    {% endif %}
+  </div>
+</article>
+{% endmacro %}

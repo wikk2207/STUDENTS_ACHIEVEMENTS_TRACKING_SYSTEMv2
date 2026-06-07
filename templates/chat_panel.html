@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Chat with Mentor</h2>
+    <div class="chat-box" style="border:1px solid #ccc; padding:1em; max-height:400px; overflow-y:auto;">
+        {% for msg in messages %}
+            <div style="margin-bottom: 1em;">
+                <strong>{{ 'You' if msg.sender_id == current_user.id else 'Mentor' }}:</strong>
+                <span>{{ msg.message }}</span>
+                <small class="text-muted" style="float:right;">{{ msg.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+            </div>
+        {% endfor %}
+    </div>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group mt-3">
+            {{ form.message.label }}
+            {{ form.message(class_='form-control', rows=3) }}
+        </div>
+        {{ form.mentor_email(type='hidden', value='') }}
+        {{ form.student_email(type='hidden', value='') }}
+        <button type="submit" class="btn btn-primary mt-2">Send</button>
+    </form>
+</div>
+{% endblock %}

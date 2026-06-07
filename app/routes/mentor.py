@@ -1,0 +1,541 @@
+from datetime import datetime
+from functools import wraps
+
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask_mail import Message as MailMessage
+from flask_login import current_user, login_required
+
+from app import db, mail
+from app.forms import MentorReviewForm
+from app.models import Achievement, Activity, Certificate, Message, Notification, User
+from app.services.otp_service import is_mail_configured
+from app.services.otp_service import send_notification_email
+from app.services.report_service import (
+    department_report_pdf,
+    export_comprehensive_excel,
+    export_csv,
+    export_excel,
+)
+from app.utils.helpers import calculate_achievement_points, log_action, save_upload
+
+bp = Blueprint("mentor", __name__)
+
+PROBLEM_TYPES = [
+    "Achievement",
+    "Activity",
+    "Certificate Upload",
+    "Report",
+    "Account",
+    "Other",
+]
+PRIORITIES = ["Normal", "Urgent", "Low"]
+CONVERSATION_STATUSES = ["Open", "In Progress", "Resolved"]
+
+
+def mentor_required(f):
+    @wraps(f)
+    @login_required
+    def decorated(*args, **kwargs):
+        from app.services.mentor_auth import is_whitelisted_mentor_email, mentor_session_verified
+
+        if not current_user.is_mentor:
+            flash("Access denied. Mentor role required.", "danger")
+            return redirect(url_for("main.access_denied"))
+        if not is_whitelisted_mentor_email(current_user.email):
+            flash("Your account is not on the approved mentor list.", "danger")
+            return redirect(url_for("main.access_denied"))
+        if not mentor_session_verified():
+            flash("Complete mentor OTP verification to continue.", "warning")
+            return redirect(url_for("auth.mentor_verify_otp"))
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+@bp.route("/dashboard")
+@mentor_required
+def dashboard():
+    achievements = Achievement.query.filter(Achievement.status != "Draft").all()
+    pending = [a for a in achievements if a.status in ("Submitted", "Under Review")]
+    approved_today = [
+        a
+        for a in achievements
+        if a.status == "Approved"
+        and a.reviewed_at
+        and a.reviewed_at.date() == datetime.utcnow().date()
+    ]
+    rejected = [a for a in achievements if a.status == "Rejected"]
+    mismatches = Certificate.query.filter_by(verification_status="Name Mismatch").count()
+    suspected_fake = Certificate.query.filter_by(verification_status="Suspected Fake").count()
+    certs_uploaded = Certificate.query.count()
+    student_ids = set()
+    for c in Certificate.query.all():
+        if c.achievement and c.achievement.student_id:
+            student_ids.add(c.achievement.student_id)
+        if c.activity and c.activity.student_id:
+            student_ids.add(c.activity.student_id)
+    students_with_certs = len(student_ids)
+    verified_certs = Certificate.query.filter(
+        Certificate.verification_status.in_(["Verified", "Likely Authentic"])
+    ).count()
+    students = User.query.filter_by(role="student").count()
+
+    top = []
+    for s in User.query.filter_by(role="student").limit(50).all():
+        ach = Achievement.query.filter_by(student_id=s.id, status="Approved").all()
+        pts = calculate_achievement_points(ach)
+        if ach:
+            top.append({"student": s, "points": pts, "count": len(ach)})
+    top.sort(key=lambda x: x["points"], reverse=True)
+
+    stats = {
+        "students": students,
+        "pending": len(pending),
+        "approved_today": len(approved_today),
+        "rejected": len(rejected),
+        "mismatches": mismatches,
+        "suspected_fake": suspected_fake,
+        "certs_uploaded": certs_uploaded,
+        "students_with_certs": students_with_certs,
+        "verified_certs": verified_certs,
+        "total_submissions": len(achievements),
+    }
+    student_rows = []
+    for s in User.query.filter_by(role="student").order_by(User.full_name).all():
+        ach = Achievement.query.filter_by(student_id=s.id).all()
+        cert_count = sum(1 for a in ach if a.certificate)
+        student_rows.append({
+            "student": s,
+            "achievements": len(ach),
+            "certificates": cert_count,
+            "approved": len([a for a in ach if a.status == "Approved"]),
+        })
+    return render_template(
+        "mentor/dashboard.html",
+        stats=stats,
+        top_students=top[:10],
+        recent_pending=pending[:8],
+        student_rows=student_rows,
+    )
+
+
+@bp.route("/submissions")
+@mentor_required
+def submissions():
+    status = request.args.get("status", "")
+    category = request.args.get("category", "")
+    search = request.args.get("q", "").strip()
+    dept = request.args.get("department", "")
+
+    q = Achievement.query.filter(Achievement.status != "Draft")
+    if status:
+        q = q.filter_by(status=status)
+    if category:
+        q = q.filter_by(category=category)
+    if search:
+        q = q.join(User).filter(
+            db.or_(
+                Achievement.title.ilike(f"%{search}%"),
+                User.full_name.ilike(f"%{search}%"),
+            )
+        )
+    if dept:
+        q = q.join(User).filter(User.department == dept)
+    items = q.order_by(Achievement.created_at.desc()).all()
+    departments = db.session.query(User.department).filter(User.role == "student").distinct().all()
+    return render_template(
+        "mentor/submissions.html",
+        submissions=items,
+        status_filter=status,
+        category_filter=category,
+        departments=[d[0] for d in departments if d[0]],
+    )
+
+
+@bp.route("/submissions/<int:aid>", methods=["GET", "POST"])
+@mentor_required
+def review_submission(aid):
+    ach = Achievement.query.get_or_404(aid)
+    form = MentorReviewForm()
+    if form.validate_on_submit():
+        ach.mentor_comment = form.mentor_comment.data
+        ach.reviewed_by = current_user.id
+        ach.reviewed_at = datetime.utcnow()
+        if form.submit_approve.data:
+            ach.status = "Approved"
+            msg = f"Your achievement '{ach.title}' was approved."
+            send_notification_email(
+                ach.student,
+                "Achievement Approved",
+                "emails/approved.html",
+                achievement=ach,
+            )
+        elif form.submit_reject.data:
+            ach.status = "Rejected"
+            msg = f"Your achievement '{ach.title}' was rejected. {ach.mentor_comment or ''}"
+            send_notification_email(
+                ach.student,
+                "Achievement Rejected",
+                "emails/rejected.html",
+                achievement=ach,
+            )
+        else:
+            return render_template("mentor/review.html", achievement=ach, form=form)
+
+        n = Notification(user_id=ach.student_id, title="Review Update", message=msg)
+        db.session.add(n)
+        db.session.commit()
+        log_action("review", f"{ach.status}: {ach.title}")
+        flash(f"Submission {ach.status.lower()}.", "success")
+        return redirect(url_for("mentor.submissions"))
+
+    if ach.status == "Submitted":
+        ach.status = "Under Review"
+        db.session.commit()
+    return render_template("mentor/review.html", achievement=ach, form=form)
+
+
+@bp.route("/submissions/<int:aid>/bulk-approve", methods=["POST"])
+@mentor_required
+def bulk_approve(aid):
+    ach = Achievement.query.get_or_404(aid)
+    cert = ach.certificate
+    if cert and cert.verification_status == "Verified":
+        ach.status = "Approved"
+        ach.reviewed_by = current_user.id
+        ach.reviewed_at = datetime.utcnow()
+        db.session.commit()
+        flash("Approved (verified certificate).", "success")
+    else:
+        flash("Only auto-approve verified certificates individually.", "warning")
+    return redirect(url_for("mentor.submissions"))
+
+
+@bp.route("/analytics")
+@mentor_required
+def analytics():
+    return render_template("mentor/analytics.html")
+
+
+@bp.route("/reports")
+@mentor_required
+def reports():
+    return render_template("mentor/reports.html")
+
+
+@bp.route("/messages", methods=["GET", "POST"])
+@bp.route("/messages/<int:student_id>", methods=["GET", "POST"])
+@mentor_required
+def messages(student_id=None):
+    current_user_id = int(current_user.get_id())
+    current_user_name = current_user.full_name
+    _mark_message_notifications_read()
+    problem_filter = (request.args.get("problem_type") or "").strip()
+    priority_filter = (request.args.get("priority") or "").strip()
+    status_filter = (request.args.get("status") or "").strip()
+    search = (request.args.get("q") or "").strip()
+    student_ids = {
+        row[0]
+        for row in db.session.query(Message.sender_id)
+        .filter(Message.receiver_id == current_user_id)
+        .all()
+    }
+    student_ids.update(
+        row[0]
+        for row in db.session.query(Message.receiver_id)
+        .filter(Message.sender_id == current_user_id)
+        .all()
+    )
+    student_ids.discard(current_user_id)
+
+    conversation_rows = []
+    if student_ids:
+        students = (
+            User.query.filter(User.id.in_(student_ids), User.role == "student")
+            .order_by(User.full_name)
+            .all()
+        )
+        for student in students:
+            convo_messages = (
+                Message.query.filter_by(conversation_id=_conversation_id(current_user_id, student.id))
+                .order_by(Message.created_at.asc())
+                .all()
+            )
+            row = {
+                "student": student,
+                "messages": convo_messages,
+                "status": _conversation_status(convo_messages, current_user_id),
+                "meta": _conversation_meta(convo_messages, current_user_id),
+                "unread": _unread_notifications_for_student(student, current_user_id),
+            }
+            if problem_filter and row["meta"].get("problem_type") != problem_filter:
+                continue
+            if priority_filter and row["meta"].get("priority") != priority_filter:
+                continue
+            if status_filter and row["status"] != status_filter:
+                continue
+            if search:
+                haystack = " ".join([
+                    student.full_name or "",
+                    student.email or "",
+                    *(m.body or "" for m in convo_messages),
+                ]).lower()
+                if search.lower() not in haystack:
+                    continue
+            conversation_rows.append(row)
+
+    selected_student = None
+    if student_id:
+        selected_student = User.query.filter_by(id=student_id, role="student").first_or_404()
+    elif conversation_rows:
+        selected_student = conversation_rows[0]["student"]
+
+    if request.method == "POST":
+        if not selected_student:
+            flash("Please select a student conversation.", "danger")
+            return redirect(url_for("mentor.messages"))
+        body = (request.form.get("body") or "").strip()
+        if not body:
+            flash("Please write your reply.", "danger")
+            return redirect(url_for("mentor.messages", student_id=selected_student.id))
+
+        attachment_rel, _ = save_upload(request.files.get("attachment"), "message_attachments")
+        msg = Message(
+            sender_id=current_user_id,
+            receiver_id=selected_student.id,
+            body=_build_chat_body(body, attachment=attachment_rel),
+            conversation_id=_conversation_id(current_user_id, selected_student.id),
+        )
+        Message.query.filter_by(
+            conversation_id=_conversation_id(current_user_id, selected_student.id)
+        ).update({"is_resolved": False})
+        db.session.add(msg)
+        db.session.add(
+            Notification(
+                user_id=selected_student.id,
+                title="Mentor Reply",
+                message=f"You got a reply from {current_user_name}.",
+            )
+        )
+        db.session.commit()
+        _send_chat_email(
+            selected_student.email,
+            f"Reply from {current_user_name}",
+            (
+                f"You got a reply from mentor {current_user_name}.\n"
+                f"Open: {url_for('student.messages', _external=True)}\n\n{body}"
+            ),
+        )
+        flash("Reply sent to student.", "success")
+        return redirect(url_for("mentor.messages", student_id=selected_student.id))
+
+    chat_messages = []
+    if selected_student:
+        chat_messages = (
+            Message.query.filter_by(
+                conversation_id=_conversation_id(current_user_id, selected_student.id)
+            )
+            .order_by(Message.created_at.asc())
+            .all()
+        )
+
+    return render_template(
+        "mentor/messages.html",
+        conversation_rows=conversation_rows,
+        selected_student=selected_student,
+        messages=_message_rows(chat_messages),
+        problem_types=PROBLEM_TYPES,
+        priorities=PRIORITIES,
+        statuses=CONVERSATION_STATUSES,
+        filters={
+            "problem_type": problem_filter,
+            "priority": priority_filter,
+            "status": status_filter,
+            "q": search,
+        },
+        conversation_status=_conversation_status(chat_messages, current_user_id) if chat_messages else "Open",
+    )
+
+
+@bp.route("/messages/<int:student_id>/status", methods=["POST"])
+@mentor_required
+def message_status(student_id):
+    student = User.query.filter_by(id=student_id, role="student").first_or_404()
+    resolved = request.form.get("status") == "Resolved"
+    conversation = _conversation_id(int(current_user.get_id()), student.id)
+    Message.query.filter_by(conversation_id=conversation).update({"is_resolved": resolved})
+    db.session.commit()
+    flash("Conversation marked as resolved." if resolved else "Conversation reopened.", "success")
+    return redirect(url_for("mentor.messages", student_id=student.id))
+
+
+@bp.route("/export/full-dataset")
+@mentor_required
+def export_full_dataset():
+    output = export_comprehensive_excel()
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="saams_full_student_dataset.xlsx",
+    )
+
+
+@bp.route("/export/excel")
+@mentor_required
+def export_all_excel():
+    achievements = Achievement.query.filter(Achievement.status != "Draft").all()
+    output = export_excel(achievements, sheet_name="All Submissions", include_student=True)
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="department_achievements.xlsx",
+    )
+
+
+@bp.route("/export/csv")
+@mentor_required
+def export_all_csv():
+    achievements = Achievement.query.filter(Achievement.status != "Draft").all()
+    output = export_csv(achievements, include_student=True)
+    return send_file(
+        output,
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="department_achievements.csv",
+    )
+
+
+@bp.route("/export/department-pdf")
+@mentor_required
+def export_department_pdf():
+    dept = request.args.get("department", current_user.department or "All")
+    achievements = Achievement.query.join(User).filter(User.role == "student")
+    if dept != "All":
+        achievements = achievements.filter(User.department == dept)
+    achievements = achievements.all()
+    stats = {
+        "total": len(achievements),
+        "approved": len([a for a in achievements if a.status == "Approved"]),
+        "pending": len([a for a in achievements if a.status in ("Submitted", "Under Review")]),
+    }
+    top = []
+    for s in User.query.filter_by(role="student").all():
+        ach = [a for a in achievements if a.student_id == s.id and a.status == "Approved"]
+        if ach:
+            top.append({
+                "name": s.full_name,
+                "points": calculate_achievement_points(ach),
+                "approved": len(ach),
+            })
+    top.sort(key=lambda x: x["points"], reverse=True)
+    pdf = department_report_pdf(dept, stats, top[:10])
+    return send_file(
+        pdf,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"department_report_{dept}.pdf",
+    )
+
+
+@bp.route("/leaderboard")
+@mentor_required
+def leaderboard():
+    return render_template("mentor/leaderboard.html")
+
+
+def _conversation_id(first_user_id, second_user_id):
+    left, right = sorted([int(first_user_id), int(second_user_id)])
+    return f"{left}:{right}"
+
+
+def _build_chat_body(body, attachment=None):
+    if not attachment:
+        return body
+    return f"Attachment: {attachment}\n\n{body}"
+
+
+def _message_rows(messages):
+    return [{"message": m, "meta": _message_meta(m)} for m in messages]
+
+
+def _message_meta(message):
+    meta = {"body": message.body or "", "attachment": None}
+    header, sep, rest = (message.body or "").partition("\n\n")
+    if sep:
+        parsed = {}
+        for line in header.splitlines():
+            key, separator, value = line.partition(":")
+            if separator:
+                parsed[key.strip().lower().replace(" ", "_")] = value.strip()
+        if parsed:
+            meta.update(parsed)
+            meta["body"] = rest
+    attachment = meta.get("attachment")
+    if attachment:
+        meta["attachment_name"] = attachment.rsplit("/", 1)[-1]
+    return meta
+
+
+def _conversation_meta(messages, current_user_id):
+    for message in messages:
+        if message.sender_id != current_user_id:
+            meta = _message_meta(message)
+            return {
+                "problem_type": meta.get("problem_type", "Other"),
+                "priority": meta.get("priority", "Normal"),
+                "subject": meta.get("subject", "Message"),
+            }
+    return {"problem_type": "Other", "priority": "Normal", "subject": "Message"}
+
+
+def _conversation_status(messages, current_user_id):
+    if messages and all(m.is_resolved for m in messages):
+        return "Resolved"
+    if any(m.sender_id == current_user_id for m in messages):
+        return "In Progress"
+    return "Open"
+
+
+def _mark_message_notifications_read():
+    current_user_id = int(current_user.get_id())
+    q = Notification.query.filter(
+        Notification.user_id == current_user_id,
+        Notification.is_read.is_(False),
+        Notification.title == "New Student Message",
+    )
+    if not q.first():
+        return
+    try:
+        q.update({"is_read": True}, synchronize_session=False)
+        db.session().expire_on_commit = False
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+
+def _unread_notifications_for_student(student, current_user_id):
+    return Notification.query.filter(
+        Notification.user_id == current_user_id,
+        Notification.is_read.is_(False),
+        Notification.title == "New Student Message",
+        Notification.message.ilike(f"%{student.full_name}%"),
+    ).count()
+
+
+def _send_chat_email(recipient, subject, body):
+    if not recipient:
+        return False
+    if not is_mail_configured():
+        current_app.logger.info("DEV chat email to %s: %s", recipient, subject)
+        return True
+    try:
+        msg = MailMessage(subject=subject, recipients=[recipient], body=body)
+        mail.send(msg)
+        return True
+    except Exception as exc:
+        current_app.logger.error("Chat email failed: %s", exc)
+        return False
+
+

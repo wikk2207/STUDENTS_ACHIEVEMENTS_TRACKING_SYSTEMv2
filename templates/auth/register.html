@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% set hide_sidebar = true %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="auth-card glass-panel neu-card card-3d" style="max-width:560px">
+  <h2 class="text-center mb-4">Create Account</h2>
+
+  {% if mail_configured %}
+  <p class="alert alert-success py-2 small mb-3"><i class="bi bi-envelope-check"></i> OTP will be sent to your real email after you register.</p>
+  {% else %}
+  <p class="alert alert-info py-2 small mb-3"><i class="bi bi-info-circle"></i> Configure <code>MAIL_USERNAME</code> and <code>MAIL_PASSWORD</code> in <code>.env</code> to send OTP to email. Otherwise the code appears on the next screen.</p>
+  {% endif %}
+
+  {% include 'components/voice_form_toggle.html' %}
+
+  {% if form.errors %}
+  <div class="alert alert-danger" role="alert">
+    <strong>Please fix these issues:</strong>
+    <ul class="mb-0 mt-2">
+      {% for field, errors in form.errors.items() %}
+        {% for error in errors %}
+        <li>{{ form[field].label.text if form[field] else field }}: {{ error }}</li>
+        {% endfor %}
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" id="registerForm">
+    {{ form.hidden_tag() }}
+    <div class="row g-2">
+      <div class="col-md-6 mb-3">
+        {{ form.full_name.label(class="form-label") }}
+        {{ form.full_name(class="form-control", data_voice_field="full_name") }}
+      </div>
+      <div class="col-md-6 mb-3">
+        {{ form.email.label(class="form-label") }}
+        {{ form.email(class="form-control", data_voice_field="email", type="email") }}
+      </div>
+      <div class="col-md-6 mb-3">
+        {{ form.mobile.label(class="form-label") }}
+        {{ form.mobile(class="form-control", placeholder="9876543210", data_voice_field="mobile") }}
+      </div>
+      <div class="col-md-6 mb-3">
+        {{ form.role.label(class="form-label") }}
+        {{ form.role(class="form-select", id="roleSelect", data_voice_field="role") }}
+      </div>
+      <div class="col-md-6 mb-3">
+        {{ form.department.label(class="form-label") }}
+        {{ form.department(class="form-control", data_voice_field="department") }}
+      </div>
+      <div class="col-md-6 mb-3" id="yearField">
+        {{ form.year.label(class="form-label") }}
+        {{ form.year(class="form-select", data_voice_field="year") }}
+      </div>
+      <div class="col-md-6 mb-3 d-none" id="empField">
+        {{ form.employee_id.label(class="form-label") }}
+        {{ form.employee_id(class="form-control", data_voice_field="employee_id") }}
+      </div>
+      <div class="col-md-6 mb-3">
+        {{ form.roll_number.label(class="form-label") }}
+        {{ form.roll_number(class="form-control", data_voice_field="roll_number") }}
+      </div>
+      <div class="col-md-6 mb-3">
+        {{ form.password.label(class="form-label") }}
+        {{ form.password(class="form-control", minlength="8", data_voice_field="password") }}
+        <small class="text-muted">At least 8 characters</small>
+      </div>
+      <div class="col-md-6 mb-3">
+        {{ form.confirm_password.label(class="form-label") }}
+        {{ form.confirm_password(class="form-control", data_voice_field="confirm_password") }}
+      </div>
+      <div class="col-12 mb-3">
+        {{ form.profile_photo.label(class="form-label") }}
+        {{ form.profile_photo(class="form-control", id="profilePhotoInput", data_voice_field="profile_photo", accept="image/jpeg,image/png,image/jpg") }}
+        <small class="text-muted">Say "upload profile picture" during voice registration</small>
+      </div>
+    </div>
+    {{ form.submit(class="btn btn-primary-neu w-100", id="registerBtn") }}
+  </form>
+  <p class="text-center"><a href="{{ url_for('auth.login') }}">Already have an account?</a></p>
+</div>
+<script>
+  document.getElementById('roleSelect')?.addEventListener('change', (e) => {
+    const mentor = e.target.value === 'mentor';
+    document.getElementById('yearField').classList.toggle('d-none', mentor);
+    document.getElementById('empField').classList.toggle('d-none', !mentor);
+  });
+  document.getElementById('roleSelect')?.dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

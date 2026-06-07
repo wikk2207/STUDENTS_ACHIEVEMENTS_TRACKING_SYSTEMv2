@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Submissions{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between flex-wrap gap-2">
+  <h1>Student Submissions</h1>
+  <div>
+    <a href="{{ url_for('mentor.export_all_excel') }}" class="btn btn-neu btn-sm">Export Excel</a>
+    <a href="{{ url_for('mentor.export_all_csv') }}" class="btn btn-neu btn-sm">Export CSV</a>
+  </div>
+</div>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-md-3"><input name="q" class="form-control" placeholder="Search student or title" value="{{ request.args.get('q','') }}"></div>
+  <div class="col-md-2"><select name="status" class="form-select"><option value="">All status</option>{% for s in ['Submitted','Under Review','Approved','Rejected'] %}<option value="{{ s }}" {% if status_filter==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><select name="category" class="form-select"><option value="">Category</option>{% for c in ['Academic','Technical','Sports','Cultural','Research','Certification','Leadership'] %}<option value="{{ c }}" {% if category_filter==c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><button class="btn btn-primary-neu">Filter</button></div>
+</form>
+<div class="glass-panel table-glass">
+  <table class="table mb-0">
+    <thead><tr><th>Student</th><th>Title</th><th>Category</th><th>Status</th><th>OCR</th><th></th></tr></thead>
+    <tbody>
+      {% for s in submissions %}
+      <tr>
+        <td>{{ s.student.full_name if s.student else '—' }}</td>
+        <td>{{ s.title }}</td>
+        <td>{{ s.category }}</td>
+        <td>{{ s.status }}</td>
+        <td>{{ s.certificate.verification_status if s.certificate else 'N/A' }}</td>
+        <td><a href="{{ url_for('mentor.review_submission', aid=s.id) }}" class="btn btn-neu btn-sm">Review</a></td>
+      </tr>
+      {% else %}<tr><td colspan="6">No submissions.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

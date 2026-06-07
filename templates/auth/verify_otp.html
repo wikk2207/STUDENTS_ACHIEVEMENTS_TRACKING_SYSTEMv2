@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% set hide_sidebar = true %}
+{% block title %}{% if verify_mode == 'login' %}Login OTP{% else %}Verify Email{% endif %}{% endblock %}
+{% block content %}
+<div class="auth-card glass-panel neu-card">
+  {% include 'components/voice_form_toggle.html' %}
+  <h2 class="text-center mb-2">
+    {% if verify_mode == 'login' %}Login Verification{% else %}Verify Your Email{% endif %}
+  </h2>
+  <p class="text-center text-muted">
+    {% if verify_mode == 'login' %}
+    Enter the login code sent to <strong>{{ email }}</strong>
+    {% else %}
+    Enter the registration code sent to <strong>{{ email }}</strong>
+    {% endif %}
+  </p>
+
+  {% if mail_configured and not dev_otp %}
+  <p class="alert alert-success py-2 small">Check your inbox and spam folder for the 6-digit code.</p>
+  {% endif %}
+
+  {% if dev_otp and not mail_configured %}
+  <div class="alert alert-info text-center mb-3" role="status">
+    <strong>Development mode</strong> — email is not configured.<br>
+    Your verification code is:<br>
+    <span class="display-6 fw-bold text-primary d-block my-2" id="devOtpCode">{{ dev_otp }}</span>
+    <small>Valid for 10 minutes. Enter it below.</small>
+  </div>
+  {% elif dev_otp %}
+  <div class="alert alert-warning text-center mb-3">
+    Email could not be sent. Use this code: <strong class="fs-4">{{ dev_otp }}</strong>
+  </div>
+  {% endif %}
+
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      {{ form.code.label(class="form-label") }}
+      {{ form.code(class="form-control text-center fs-4", placeholder="000000", maxlength="6", autocomplete="one-time-code", inputmode="numeric", data_voice_field="code") }}
+      {% for e in form.code.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+    {{ form.submit(class="btn btn-primary-neu w-100 mb-2", id="verifyOtpBtn") }}
+  </form>
+
+  <form method="post" action="{{ url_for('auth.resend_otp') }}" class="text-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-link">Resend code</button>
+  </form>
+  <p class="text-center small mt-2">
+    <a href="{{ url_for('auth.login') if verify_mode == 'login' else url_for('auth.register') }}">Back</a>
+  </p>
+</div>
+{% endblock %}

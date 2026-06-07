@@ -1,0 +1,192 @@
+<!-- SARA Voice Assistant Widget -->
+<!-- Add this to base.html or any template to enable voice -->
+
+<div id="sara-widget" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: Arial, sans-serif;">
+    <!-- Voice Assistant Button -->
+    <button 
+        id="sara-button" 
+        onclick="toggleSARA()" 
+        title="Enable/Disable SARA Voice Assistant (Alt+Space to listen)"
+        style="
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        "
+        onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.3)';"
+        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.2)';"
+    >
+        🎤
+    </button>
+    
+    <!-- Voice Status Display -->
+    <div id="sara-status" style="
+        display: none;
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        background: rgba(102, 126, 234, 0.95);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        max-width: 250px;
+        word-wrap: break-word;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        white-space: pre-wrap;
+    "></div>
+    
+    <!-- Settings Panel (Initially Hidden) -->
+    <div id="sara-settings-panel" style="
+        display: none;
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        padding: 16px;
+        width: 280px;
+        z-index: 10000;
+    ">
+        <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">SARA Settings</h3>
+        
+        <!-- Voice Selection -->
+        <div style="margin-bottom: 14px;">
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px;">Voice Preference:</label>
+            <select onchange="changeSARAVoice(this.value)" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                <option value="professional_female">👩 Professional Female</option>
+                <option value="professional_male">👨 Professional Male</option>
+                <option value="warm_assistant">😊 Warm Assistant</option>
+                <option value="accessibility">♿ Accessibility (Slower)</option>
+            </select>
+        </div>
+        
+        <!-- Blind Mode Toggle -->
+        <div style="margin-bottom: 14px;">
+            <label style="font-size: 12px; color: #666; display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="blind-mode-toggle" onchange="toggleBlindMode()" style="margin-right: 8px; width: 16px; height: 16px;">
+                Enable Blind Mode
+            </label>
+            <p style="font-size: 11px; color: #999; margin: 6px 0 0 0;">Auto-announces page changes and options</p>
+        </div>
+        
+        <!-- Quick Commands -->
+        <div style="margin-bottom: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+            <p style="font-size: 12px; color: #666; margin: 0 0 8px 0;">Quick Test:</p>
+            <button onclick="sara && sara.startListening()" style="
+                width: 100%;
+                padding: 8px;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 12px;
+                cursor: pointer;
+                font-weight: bold;
+            ">🎙️ Start Listening Now</button>
+            
+            <div style="margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px; font-size: 11px; color: #666;">
+                <strong>Try saying:</strong><br/>
+                "login" → Login page<br/>
+                "add achievement" → Add form<br/>
+                "ashwini dot ingole at gmail dot com" → Email input<br/>
+                "dark mode" → Change theme
+            </div>
+        </div>
+        
+        <!-- Info -->
+        <p style="font-size: 11px; color: #999; margin: 8px 0 0 0;">
+            💡 Tip: Press Alt+Space to start listening anytime
+        </p>
+    </div>
+    
+    <!-- Settings Gear Icon -->
+    <button 
+        id="sara-settings-btn"
+        onclick="toggleSARASettings()"
+        title="SARA Settings"
+        style="
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #ddd;
+            font-size: 20px;
+            cursor: pointer;
+            position: absolute;
+            bottom: 75px;
+            right: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        "
+        onmouseover="this.style.background='#e0e0e0';"
+        onmouseout="this.style.background='#f0f0f0';"
+    >
+        ⚙️
+    </button>
+</div>
+
+<style>
+    /* Status indicator animation */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
+    #sara-status.listening {
+        animation: pulse 1s infinite;
+    }
+    
+    #sara-status.speaking {
+        animation: pulse 0.8s infinite;
+    }
+</style>
+
+<script>
+// Toggle settings panel visibility
+function toggleSARASettings() {
+    const panel = document.getElementById('sara-settings-panel');
+    const btn = document.getElementById('sara-settings-btn');
+    
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        btn.style.display = 'flex';
+    } else {
+        panel.style.display = 'none';
+        btn.style.display = 'none';
+    }
+}
+
+// Show settings when hovering over main button
+document.getElementById('sara-button').addEventListener('mouseenter', () => {
+    document.getElementById('sara-settings-btn').style.display = 'flex';
+});
+
+document.getElementById('sara-widget').addEventListener('mouseleave', () => {
+    document.getElementById('sara-settings-btn').style.display = 'none';
+    document.getElementById('sara-settings-panel').style.display = 'none';
+});
+
+// Load saved preferences
+window.addEventListener('load', () => {
+    const blindMode = localStorage.getItem('sara-blind-mode') === 'true';
+    const blindToggle = document.getElementById('blind-mode-toggle');
+    if (blindToggle && blindMode) {
+        blindToggle.checked = true;
+    }
+});
+</script>

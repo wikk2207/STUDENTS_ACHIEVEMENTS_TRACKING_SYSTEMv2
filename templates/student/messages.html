@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Mentor Chat{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1>Mentor Chat</h1>
+    <p class="text-muted mb-0">Send problems to your mentor and keep replies in one place.</p>
+  </div>
+  <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
+</div>
+
+<style>
+  [data-theme="bw"] {
+    --bg: #fff;
+    --text: #000;
+    --primary: #000;
+    --secondary: #444;
+    --accent: #888;
+    --glass: #fff;
+    --neu-light: #fff;
+    --neu-dark: #000;
+    --border-glow-bg: #fff;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  [data-theme="bw"] .glass-panel,
+  [data-theme="bw"] .neu-card {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .btn,
+  [data-theme="bw"] .btn-primary-neu,
+  [data-theme="bw"] .btn-neu,
+  [data-theme="bw"] .form-control,
+  [data-theme="bw"] .form-select {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .text-muted,
+  [data-theme="bw"] .text-white-50 {
+    color: #444 !important;
+  }
+  [data-theme="bw"] .chat-bubble {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+  }
+  .chat-bubble { white-space: pre-wrap; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeSwitcher');
+  let bw = localStorage.getItem('saams-theme') === 'bw';
+  html.dataset.theme = bw ? 'bw' : 'light';
+  btn?.addEventListener('click', function() {
+    bw = !bw;
+    html.dataset.theme = bw ? 'bw' : 'light';
+    localStorage.setItem('saams-theme', bw ? 'bw' : 'light');
+  });
+});
+</script>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="glass-panel neu-card p-3">
+      <h5 class="mb-3"><i class="bi bi-send"></i> New Message</h5>
+      {% if mentors %}
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+          <label for="mentor_id" class="form-label">Mentor</label>
+          <select name="mentor_id" id="mentor_id" class="form-select" onchange="window.location='{{ url_for('student.messages') }}?mentor_id=' + this.value">
+            {% for mentor in mentors %}
+            <option value="{{ mentor.id }}" {% if selected_mentor and mentor.id == selected_mentor.id %}selected{% endif %}>{{ mentor.full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="problem_type" class="form-label">Problem Type</label>
+          <select name="problem_type" id="problem_type" class="form-select" required>
+            {% for problem_type in problem_types %}
+            <option value="{{ problem_type }}">{{ problem_type }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="priority" class="form-label">Priority</label>
+          <select name="priority" id="priority" class="form-select" required>
+            {% for priority in priorities %}
+            <option value="{{ priority }}">{{ priority }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="subject" class="form-label">Subject</label>
+          <input type="text" name="subject" id="subject" class="form-control" maxlength="120" placeholder="Short title">
+        </div>
+        <div class="mb-3">
+          <label for="body" class="form-label">Message</label>
+          <textarea name="body" id="body" class="form-control" rows="5" required placeholder="Explain the problem clearly"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="attachment" class="form-label">Attachment</label>
+          <input type="file" name="attachment" id="attachment" class="form-control">
+        </div>
+        <button class="btn btn-primary-neu w-100" type="submit"><i class="bi bi-envelope-paper"></i> Send to Mentor</button>
+      </form>
+      {% else %}
+      <p class="text-muted mb-0">No mentor account is available yet.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="glass-panel neu-card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h5 class="mb-1"><i class="bi bi-chat-dots"></i> Conversation</h5>
+          {% if selected_mentor %}<span class="text-muted small">{{ selected_mentor.full_name }}</span>{% endif %}
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <span class="status-badge">{{ conversation_status }}</span>
+          {% if selected_mentor %}
+          <form method="post" action="{{ url_for('student.message_status', mentor_id=selected_mentor.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ 'Open' if conversation_status == 'Resolved' else 'Resolved' }}">
+            <button class="btn btn-neu btn-sm" type="submit">{{ 'Reopen' if conversation_status == 'Resolved' else 'Mark Solved' }}</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      <form method="get" class="d-flex gap-2 mb-3">
+        {% if selected_mentor %}<input type="hidden" name="mentor_id" value="{{ selected_mentor.id }}">{% endif %}
+        <input type="search" name="q" value="{{ search }}" class="form-control" placeholder="Search this conversation">
+        <button class="btn btn-neu" type="submit"><i class="bi bi-search"></i></button>
+      </form>
+      <div class="chat-history">
+        {% for row in messages %}
+        {% set m = row.message %}
+        {% set meta = row.meta %}
+        <div class="chat-bubble mb-2 p-3 {% if m.sender_id == current_user.id %}text-end bg-primary text-white{% else %}bg-light{% endif %}" style="max-width:75%;margin-left:{% if m.sender_id == current_user.id %}auto{% else %}0{% endif %};border-radius:1rem;">
+          <div class="small {% if m.sender_id == current_user.id %}text-white-50{% else %}text-muted{% endif %}">{{ m.sender.full_name }} | {{ m.created_at.strftime('%d %b %Y %H:%M') }}</div>
+          {% if meta.problem_type or meta.priority or meta.subject %}
+          <div class="small {% if m.sender_id == current_user.id %}text-white-50{% else %}text-muted{% endif %}">
+            {{ meta.problem_type or 'Message' }}{% if meta.priority %} | {{ meta.priority }}{% endif %}{% if meta.subject %} | {{ meta.subject }}{% endif %}
+          </div>
+          {% endif %}
+          <div>{{ meta.body }}</div>
+          {% if meta.attachment %}
+          <a class="{% if m.sender_id == current_user.id %}text-white{% endif %}" href="{{ url_for('static', filename=meta.attachment) }}" target="_blank" rel="noopener"><i class="bi bi-paperclip"></i> {{ meta.attachment_name }}</a>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">No messages yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

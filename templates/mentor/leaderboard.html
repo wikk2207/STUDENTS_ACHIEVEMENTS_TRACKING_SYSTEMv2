@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Achievement Leaderboard</h1></div>
+<div class="glass-panel neu-card">
+  <table class="table mb-0" id="leaderboardTable">
+    <thead><tr><th>#</th><th>Student</th><th>Department</th><th>Points</th><th>Approved</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+fetch(window.SAAMS.urls.leaderboard).then(r=>r.json()).then(data=>{
+  const tb=document.querySelector('#leaderboardTable tbody');
+  data.forEach((s,i)=>{tb.innerHTML+=`<tr><td>${i+1}</td><td>${s.name}</td><td>${s.department||'—'}</td><td>${s.points}</td><td>${s.count}</td></tr>`});
+});
+</script>
+{% endblock %}
+

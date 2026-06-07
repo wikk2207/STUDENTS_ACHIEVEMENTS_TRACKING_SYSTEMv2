@@ -1,0 +1,119 @@
+
+{% extends "base.html" %}
+{% block title %}Achievements{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <h1>Achievements</h1>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('student.achievement_add') }}" class="btn btn-primary-neu">Add Achievement</a>
+    <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
+  </div>
+</div>
+{# Theme Switcher Script #}
+<style>
+  [data-theme="bw"] {
+    --bg: #fff;
+    --text: #000;
+    --primary: #000;
+    --secondary: #444;
+    --accent: #888;
+    --glass: #fff;
+    --neu-light: #fff;
+    --neu-dark: #000;
+    --border-glow-bg: #fff;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  [data-theme="bw"] .glass-panel,
+  [data-theme="bw"] .neu-card,
+  [data-theme="bw"] .profile-card-details,
+  [data-theme="bw"] .card-3d {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .btn,
+  [data-theme="bw"] .btn-primary-neu,
+  [data-theme="bw"] .btn-secondary-neu,
+  [data-theme="bw"] .btn-neu {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  [data-theme="bw"] .status-badge {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeSwitcher');
+  // Only two themes: default and black & white
+  let bw = false;
+  const saved = localStorage.getItem('saams-theme');
+  if (saved === 'bw') {
+    html.dataset.theme = 'bw';
+    bw = true;
+  } else {
+    html.dataset.theme = 'light';
+    bw = false;
+  }
+  btn?.addEventListener('click', function() {
+    bw = !bw;
+    html.dataset.theme = bw ? 'bw' : 'light';
+    localStorage.setItem('saams-theme', bw ? 'bw' : 'light');
+  });
+});
+</script>
+
+<form method="get" class="mb-3 d-flex align-items-center gap-2">
+  <label for="category" class="form-label mb-0">Filter by Category:</label>
+  <select name="category" id="category" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+    <option value="">All</option>
+    {% for cat in ['Academic','Technical','Sports','Cultural','Research','Certification','Leadership','Hackathon','Soft Skill','Internship','Workshop','Volunteering','Club','Other'] %}
+      <option value="{{ cat }}" {% if request.args.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+    {% endfor %}
+  </select>
+</form>
+<div class="glass-panel table-glass">
+  <table class="table mb-0">
+    <thead><tr><th>Title</th><th>Category</th><th>Event</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for a in achievements %}
+      <tr>
+        <td>{{ a.title }}</td>
+        <td>{{ a.category }}</td>
+        <td>{{ a.event_name or '—' }}</td>
+        <td><span class="status-badge">{{ a.status }}</span></td>
+        <td>
+          <a href="{{ url_for('student.achievement_edit', aid=a.id) }}" class="btn btn-neu btn-sm">Edit</a>
+          {% if a.status == 'Rejected' %}
+          <form method="post" action="{{ url_for('student.achievement_resubmit', aid=a.id) }}" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-neu btn-sm">Resubmit</button></form>
+          {% endif %}
+          <form method="post" action="{{ url_for('student.achievement_delete', aid=a.id) }}" class="d-inline" onsubmit="return confirm('Delete?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-neu btn-sm text-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">
+          <div style="padding:2rem 0;text-align:center;color:#888;font-size:1.2rem;">
+            <strong>Oops, you don't have any achievements here!</strong><br>
+            Try adding a new achievement or selecting a different status above.
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+
+
