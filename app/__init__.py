@@ -33,12 +33,9 @@ def create_app(config_name=None):
         template_folder="../templates",
         static_folder="../static",
     )
-    # Force use of DevelopmentConfig for local/dev reliability
-    # Support both package and legacy module layouts.
-    try:
-        app.config.from_object('saams.config.DevelopmentConfig')
-    except Exception:
-        app.config.from_object('config.DevelopmentConfig')
+    selected_config = config_name or os.environ.get("FLASK_ENV") or os.environ.get("FLASK_CONFIG") or "default"
+    config_class = config_map.get(selected_config, config_map["default"])
+    app.config.from_object(config_class)
 
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
@@ -106,8 +103,42 @@ def create_app(config_name=None):
     with app.app_context():
         db.create_all()
         _ensure_schema_columns(app)
+        _ensure_env_mentor_account(app)
 
     return app
+
+
+def _ensure_env_mentor_account(app):
+    """Create/update the whitelisted mentor when Render supplies MENTOR_PASSWORD."""
+    mentor_email = (app.config.get("MENTOR_EMAIL") or "").strip().lower()
+    mentor_password = os.environ.get("MENTOR_PASSWORD", "").strip()
+    if not mentor_email or not mentor_password:
+        return
+
+    from app.models import User
+
+    mentor = User.query.filter_by(email=mentor_email).first()
+    if not mentor:
+        mentor = User(
+            full_name=os.environ.get("MENTOR_NAME", "SAAMS Mentor"),
+            email=mentor_email,
+            mobile=os.environ.get("MENTOR_MOBILE", ""),
+            role="mentor",
+            department=os.environ.get("MENTOR_DEPARTMENT", "All Departments"),
+            employee_id=os.environ.get("MENTOR_EMPLOYEE_ID", "MTR001"),
+            mentor_designation=os.environ.get("MENTOR_DESIGNATION", "Mentor"),
+            mentor_organization=os.environ.get("MENTOR_ORGANIZATION", "SAAMS"),
+            is_verified=True,
+        )
+        db.session.add(mentor)
+    else:
+        mentor.role = "mentor"
+        mentor.is_verified = True
+        mentor.full_name = os.environ.get("MENTOR_NAME", mentor.full_name or "SAAMS Mentor")
+        mentor.mentor_designation = os.environ.get("MENTOR_DESIGNATION", mentor.mentor_designation or "Mentor")
+        mentor.mentor_organization = os.environ.get("MENTOR_ORGANIZATION", mentor.mentor_organization or "SAAMS")
+    mentor.set_password(mentor_password)
+    db.session.commit()
 
 
 def _ensure_schema_columns(app):
