@@ -631,7 +631,7 @@ def view_certificate(cert_id):
 
     if not os.path.exists(certificate_path):
         flash("Certificate file not found. Please upload it again.", "danger")
-        return redirect(url_for("student.achievements_list"))
+        return redirect(_certificate_fallback_url())
 
     return send_file(
         certificate_path,
@@ -650,7 +650,7 @@ def download_certificate(cert_id):
     certificate_path = _certificate_abs_path(cert)
     if not os.path.exists(certificate_path):
         flash("Certificate file not found. Please upload it again.", "danger")
-        return redirect(url_for("student.achievements_list"))
+        return redirect(_certificate_fallback_url())
     return send_file(certificate_path, as_attachment=True, download_name=cert.file_name)
 
 
@@ -704,6 +704,12 @@ def _certificate_abs_path(cert):
     if not path.startswith(static_root):
         abort(404)
     return path
+
+
+def _certificate_fallback_url():
+    if current_user.is_authenticated and current_user.is_mentor:
+        return request.referrer or url_for("mentor.submissions")
+    return request.referrer or url_for("student.achievements_list")
 
 
 def _student_classroom_posts():

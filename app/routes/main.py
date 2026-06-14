@@ -1,5 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, jsonify, render_template, redirect, url_for
 from flask_login import current_user
+from sqlalchemy import text
+
+from app import db
 
 bp = Blueprint("main", __name__)
 
@@ -36,3 +39,12 @@ def dashboard_redirect():
 @bp.route("/access-denied")
 def access_denied():
     return render_template("access_denied.html"), 403
+
+
+@bp.route("/healthz")
+def healthz():
+    try:
+        db.session.execute(text("select 1"))
+        return jsonify({"status": "ok", "database": "ok"})
+    except Exception as exc:
+        return jsonify({"status": "error", "database": str(exc)}), 500

@@ -341,15 +341,15 @@ document.addEventListener('DOMContentLoaded', function() {
           <td>{{ cert.uploaded_at.strftime('%d %b %Y') if cert.uploaded_at else '' }}</td>
           <td>
             {% if cert.file_type in ['pdf'] %}
-              <a href="{{ url_for('static', filename=cert.file_path) }}" target="_blank" class="btn btn-sm btn-primary">Preview</a>
+              <a href="{{ url_for('student.view_certificate', cert_id=cert.id) }}" target="_blank" class="btn btn-sm btn-primary">Preview</a>
             {% elif cert.file_type in ['jpg', 'jpeg', 'png', 'gif', 'webp'] %}
-              <a href="{{ url_for('static', filename=cert.file_path) }}" target="_blank" class="btn btn-sm btn-primary">Preview</a>
+              <a href="{{ url_for('student.view_certificate', cert_id=cert.id) }}" target="_blank" class="btn btn-sm btn-primary">Preview</a>
             {% else %}
               <span class="text-muted">N/A</span>
             {% endif %}
           </td>
           <td>
-            <a href="{{ url_for('static', filename=cert.file_path) }}" download class="btn btn-sm btn-secondary">Download</a>
+            <a href="{{ url_for('student.download_certificate', cert_id=cert.id) }}" class="btn btn-sm btn-secondary">Download</a>
           </td>
         </tr>
         {% else %}

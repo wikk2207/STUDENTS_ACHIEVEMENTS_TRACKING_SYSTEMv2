@@ -97,6 +97,8 @@ def send_otp_email(user, code, purpose="verification"):
             purpose=purpose,
         )
         sender = current_app.config.get("MAIL_DEFAULT_SENDER") or current_app.config.get("MAIL_USERNAME")
+        if sender and "<" not in sender and "@" in sender:
+            sender = f"SAAMS <{sender}>"
         msg = Message(
             subject=subject,
             recipients=[user.email.strip()],
@@ -122,7 +124,10 @@ def send_notification_email(user, subject, template, **kwargs):
         return True
     try:
         body = render_template(template, user=user, **kwargs)
-        msg = Message(subject=subject, recipients=[user.email], html=body)
+        sender = current_app.config.get("MAIL_DEFAULT_SENDER") or current_app.config.get("MAIL_USERNAME")
+        if sender and "<" not in sender and "@" in sender:
+            sender = f"SAAMS <{sender}>"
+        msg = Message(subject=subject, recipients=[user.email], html=body, sender=sender)
         mail.send(msg)
         return True
     except Exception as e:

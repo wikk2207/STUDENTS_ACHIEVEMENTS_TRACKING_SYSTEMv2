@@ -22,7 +22,7 @@
       <p><strong>Rank:</strong> {{ achievement.rank or '—' }}</p>
       <p>{{ achievement.description }}</p>
       {% if achievement.certificate %}
-      <a href="{{ url_for('static', filename=achievement.certificate.file_path) }}" target="_blank" class="btn btn-neu btn-sm">View Certificate</a>
+      <a href="{{ url_for('student.view_certificate', cert_id=achievement.certificate.id) }}" target="_blank" class="btn btn-neu btn-sm">View Certificate</a>
       {% endif %}
     </div>
   </div>
