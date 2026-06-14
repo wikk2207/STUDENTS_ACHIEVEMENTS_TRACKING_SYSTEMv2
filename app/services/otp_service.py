@@ -120,8 +120,8 @@ def send_otp_email(user, code, purpose="verification"):
         current_app.logger.error("Mail send failed: %s", e)
         store_dev_otp(code)
         return False, (
-            f"Could not send email ({e}). Your verification code is: {code} "
-            "(shown below — valid 10 minutes)"
+            f"Email could not be sent. Use this code: {code} "
+            "(valid 10 minutes)"
         )
 
 
