@@ -3,6 +3,7 @@ from flask_login import current_user
 from sqlalchemy import text
 
 from app import db
+from app.models import Achievement, Certificate, ClassroomPost, User
 
 bp = Blueprint("main", __name__)
 
@@ -48,3 +49,32 @@ def healthz():
         return jsonify({"status": "ok", "database": "ok"})
     except Exception as exc:
         return jsonify({"status": "error", "database": str(exc)}), 500
+
+
+@bp.route("/healthz/deep")
+def healthz_deep():
+    result = {"status": "ok", "checks": {}}
+    try:
+        result["checks"]["database"] = "ok"
+        result["checks"]["users"] = User.query.count()
+        result["checks"]["mentors"] = User.query.filter_by(role="mentor").count()
+        result["checks"]["students"] = User.query.filter_by(role="student").count()
+        result["checks"]["achievements"] = Achievement.query.count()
+        result["checks"]["certificates"] = Certificate.query.count()
+        result["checks"]["classroom_posts"] = ClassroomPost.query.count()
+        result["checks"]["mail_server"] = "configured" if _mail_ready() else "missing"
+        return jsonify(result)
+    except Exception as exc:
+        result["status"] = "error"
+        result["error"] = str(exc)
+        return jsonify(result), 500
+
+
+def _mail_ready():
+    from flask import current_app
+
+    return bool(
+        current_app.config.get("MAIL_SERVER")
+        and current_app.config.get("MAIL_USERNAME")
+        and current_app.config.get("MAIL_PASSWORD")
+    )

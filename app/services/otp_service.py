@@ -1,6 +1,8 @@
 import random
+import smtplib
 import string
 from datetime import datetime, timedelta
+from email.mime.text import MIMEText
 
 from flask import current_app, render_template, session
 from flask_mail import Message
@@ -105,7 +107,10 @@ def send_otp_email(user, code, purpose="verification"):
             html=body,
             sender=sender,
         )
-        mail.send(msg)
+        try:
+            mail.send(msg)
+        except Exception:
+            _send_direct_smtp(user.email.strip(), subject, body, sender)
         session.pop("dev_otp_code", None)
         current_app.logger.info("OTP email sent to %s", user.email)
         return True, f"OTP sent to {user.email}. Check your inbox and spam folder."
@@ -128,8 +133,40 @@ def send_notification_email(user, subject, template, **kwargs):
         if sender and "<" not in sender and "@" in sender:
             sender = f"SAAMS <{sender}>"
         msg = Message(subject=subject, recipients=[user.email], html=body, sender=sender)
-        mail.send(msg)
+        try:
+            mail.send(msg)
+        except Exception:
+            _send_direct_smtp(user.email, subject, body, sender)
         return True
     except Exception as e:
         current_app.logger.error("Notification email failed: %s", e)
         return False
+
+
+def _send_direct_smtp(recipient, subject, html_body, sender):
+    host = current_app.config.get("MAIL_SERVER")
+    port = int(current_app.config.get("MAIL_PORT", 587))
+    username = current_app.config.get("MAIL_USERNAME")
+    password = current_app.config.get("MAIL_PASSWORD")
+    timeout = int(current_app.config.get("MAIL_TIMEOUT", 20))
+    use_ssl = bool(current_app.config.get("MAIL_USE_SSL"))
+    use_tls = bool(current_app.config.get("MAIL_USE_TLS"))
+
+    msg = MIMEText(html_body, "html", "utf-8")
+    msg["Subject"] = subject
+    msg["From"] = sender or username
+    msg["To"] = recipient
+
+    if use_ssl:
+        with smtplib.SMTP_SSL(host, port, timeout=timeout) as smtp:
+            smtp.login(username, password)
+            smtp.sendmail(sender or username, [recipient], msg.as_string())
+        return
+
+    with smtplib.SMTP(host, port, timeout=timeout) as smtp:
+        smtp.ehlo()
+        if use_tls:
+            smtp.starttls()
+            smtp.ehlo()
+        smtp.login(username, password)
+        smtp.sendmail(sender or username, [recipient], msg.as_string())
