@@ -4,6 +4,7 @@ from app.utils.helpers import (
     log_action,
     calculate_achievement_points,
     get_badges,
+    get_portfolio_level,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "log_action",
     "calculate_achievement_points",
     "get_badges",
+    "get_portfolio_level",
 ]

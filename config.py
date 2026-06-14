@@ -4,27 +4,22 @@ from datetime import timedelta
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
+def normalize_database_url(url):
+    if url and url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
+
+
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", f"sqlite:///{os.path.join(basedir, 'saams.db')}"
+    SQLALCHEMY_DATABASE_URI = normalize_database_url(
+        os.environ.get(
+            "DATABASE_URL",
+            "postgresql://saams:saams@localhost:5433/eduvo_saams",
+        )
     )
 
-    # SQLite hardening for multi-worker / networked filesystems
-    # (prevents common transient failures like: sqlite3.OperationalError: disk I/O error)
     SQLALCHEMY_ENGINE_OPTIONS = {}
-    if SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
-        SQLALCHEMY_ENGINE_OPTIONS = {
-            "connect_args": {
-                "check_same_thread": False,
-                "timeout": 30,
-            },
-        }
-
-    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
-        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace(
-            "postgres://", "postgresql://", 1
-        )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "localhost")
@@ -36,6 +31,7 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get(
         "MAIL_DEFAULT_SENDER", "SAAMS <noreply@saams.local>"
     )
+    MAIL_DEBUG = os.environ.get("MAIL_DEBUG", "false").lower() == "true"
 
     UPLOAD_FOLDER = os.path.join(basedir, "static", "uploads")
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024))

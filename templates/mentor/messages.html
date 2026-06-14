@@ -6,7 +6,7 @@
     <h1>Student Messages</h1>
     <p class="text-muted mb-0">Review student problems and reply directly.</p>
   </div>
-  <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
+  {% include 'components/theme_switcher.html' %}
 </div>
 
 <style>
@@ -52,20 +52,6 @@
   .chat-bubble { white-space: pre-wrap; }
   .student-thread.active { border-color: var(--primary) !important; }
 </style>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const html = document.documentElement;
-  const btn = document.getElementById('themeSwitcher');
-  let bw = localStorage.getItem('saams-theme') === 'bw';
-  html.dataset.theme = bw ? 'bw' : 'light';
-  btn?.addEventListener('click', function() {
-    bw = !bw;
-    html.dataset.theme = bw ? 'bw' : 'light';
-    localStorage.setItem('saams-theme', bw ? 'bw' : 'light');
-  });
-});
-</script>
-
 <div class="row g-4">
   <div class="col-lg-4">
     <div class="glass-panel neu-card p-3">

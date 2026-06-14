@@ -111,9 +111,19 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="kpi-card glass-panel neu-card card-3d"><h3>{{ stats.points }}</h3><p>Achievement Points</p></div>
 </div>
 
-{% if badges %}
-<div class="mb-4">
-  {% for b in badges %}<span class="badge bg-primary me-1">{{ b }}</span>{% endfor %}
+{% if badges or portfolio_level %}
+<div class="glass-panel neu-card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h5 class="mb-1"><i class="bi bi-award"></i> Badges & Level</h5>
+      <p class="text-muted mb-0">{{ portfolio_level.label }} · {{ portfolio_level.name }}{% if portfolio_level.next %} · Next: {{ portfolio_level.next }}{% endif %}</p>
+    </div>
+    <a href="{{ url_for('student.portfolio_pdf') }}" class="btn btn-primary-neu btn-sm">Download Portfolio PDF</a>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% for b in badges %}<span class="badge bg-primary me-1">{{ b }}</span>{% endfor %}
+    {% if not badges %}<span class="text-muted small">Approved submissions will unlock badges.</span>{% endif %}
+  </div>
 </div>
 {% endif %}
 
@@ -126,6 +136,37 @@ document.addEventListener('DOMContentLoaded', function() {
     <a href="{{ url_for('student.achievements_list') }}" class="btn btn-neu btn-sm">View History</a>
     <a href="{{ url_for('student.portfolio_pdf') }}" class="btn btn-neu btn-sm">Download Portfolio</a>
     <a href="{{ url_for('student.reports') }}" class="btn btn-neu btn-sm">Reports</a>
+  </div>
+</div>
+
+<div class="glass-panel neu-card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h5 class="mb-0"><i class="bi bi-alarm"></i> Deadlines & Upcoming Events</h5>
+    <a href="{{ url_for('student.deadlines') }}" class="btn btn-neu btn-sm">View all</a>
+  </div>
+  <div class="classroom-feed classroom-feed-compact">
+    {% for post in classroom_posts %}
+    {% set is_read = post.id in read_post_ids %}
+    <article class="classroom-card {% if is_read %}classroom-read{% endif %}">
+      <div class="classroom-card-top">
+        <span class="classroom-type classroom-type-{{ post.post_type }}">{{ 'Deadline' if post.is_deadline else 'Event' }}</span>
+        <span class="classroom-time">{{ post.due_at.strftime('%d %b, %I:%M %p') }}</span>
+      </div>
+      <strong>{{ post.title }}</strong>
+      {% if post.description %}<p class="small mb-2">{{ post.description[:110] }}{% if post.description|length > 110 %}…{% endif %}</p>{% endif %}
+      <div class="d-flex flex-wrap gap-2">
+        {% if post.action_url %}<a href="{{ post.action_url }}" class="btn btn-primary-neu btn-sm">{{ post.action_label or 'Open' }}</a>{% endif %}
+        {% if not is_read %}
+        <form method="post" action="{{ url_for('student.deadline_mark_read', post_id=post.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-neu btn-sm">Mark read</button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+    {% else %}
+    <p class="text-muted mb-0">No active deadlines or events yet.</p>
+    {% endfor %}
   </div>
 </div>
 

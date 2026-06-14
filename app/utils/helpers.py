@@ -64,20 +64,84 @@ def calculate_achievement_points(achievements):
     return total
 
 
+def get_portfolio_level(points, approved_count=0):
+    if points >= 500 or approved_count >= 25:
+        return {
+            "name": "Elite Achiever",
+            "label": "Level 5",
+            "next": None,
+            "color": "#111827",
+        }
+    if points >= 300 or approved_count >= 15:
+        return {
+            "name": "Campus Champion",
+            "label": "Level 4",
+            "next": "500 pts or 25 approved achievements",
+            "color": "#7f1d1d",
+        }
+    if points >= 150 or approved_count >= 8:
+        return {
+            "name": "Top Performer",
+            "label": "Level 3",
+            "next": "300 pts or 15 approved achievements",
+            "color": "#7c2d12",
+        }
+    if points >= 60 or approved_count >= 3:
+        return {
+            "name": "Rising Star",
+            "label": "Level 2",
+            "next": "150 pts or 8 approved achievements",
+            "color": "#065f46",
+        }
+    return {
+        "name": "Portfolio Starter",
+        "label": "Level 1",
+        "next": "60 pts or 3 approved achievements",
+        "color": "#1e3a8a",
+    }
+
+
 def get_badges(achievements, activities):
     badges = []
     approved = [a for a in achievements if a.status == "Approved"]
-    cats = {a.category for a in approved}
-    if len(approved) >= 10:
-        badges.append("Achiever")
-    if len(approved) >= 25:
-        badges.append("Top Performer")
+    cats = {(a.category or "").strip() for a in approved}
+    titles = " ".join([a.title or "" for a in approved]).lower()
+    activity_count = len(activities)
+    approved_count = len(approved)
+    points = calculate_achievement_points(achievements)
+
+    def add(name):
+        if name not in badges:
+            badges.append(name)
+
+    if approved_count >= 1:
+        add("First Win")
+    if approved_count >= 5:
+        add("Consistent Achiever")
+    if approved_count >= 10:
+        add("Achievement Pro")
+    if approved_count >= 25:
+        add("Top Performer")
+    if points >= 150:
+        add("Point Builder")
+    if points >= 300:
+        add("High Scorer")
     if "Research" in cats:
-        badges.append("Research Enthusiast")
+        add("Research Starter")
+    if len([a for a in approved if (a.category or "") == "Research"]) >= 3:
+        add("Research Scholar")
     if "Sports" in cats:
-        badges.append("Sports Champion")
-    if "Technical" in cats and len([a for a in approved if a.category == "Technical"]) >= 5:
-        badges.append("Tech Star")
-    if len(activities) >= 10:
-        badges.append("Active Participant")
+        add("Sports Champion")
+    if "Technical" in cats or "hackathon" in titles:
+        add("Tech Explorer")
+    if "hackathon" in titles or any((a.event_name or "").lower().find("hackathon") >= 0 for a in approved):
+        add("Hackathon Hero")
+    if "Certification" in cats:
+        add("Certified Learner")
+    if "Leadership" in cats:
+        add("Leadership Spark")
+    if activity_count >= 5:
+        add("Active Participant")
+    if activity_count >= 10:
+        add("Campus Contributor")
     return badges

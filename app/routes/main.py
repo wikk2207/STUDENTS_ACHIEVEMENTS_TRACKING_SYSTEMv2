@@ -5,8 +5,20 @@ bp = Blueprint("main", __name__)
 
 
 @bp.route("/")
+@bp.route("/home")
 def index():
     return render_template("index.html")
+
+
+@bp.route("/login")
+@bp.route("/student-login")
+def student_login_redirect():
+    return redirect(url_for("auth.login"))
+
+
+@bp.route("/mentor-login")
+def mentor_login_redirect():
+    return redirect(url_for("auth.mentor_login"))
 
 
 @bp.route("/dashboard")

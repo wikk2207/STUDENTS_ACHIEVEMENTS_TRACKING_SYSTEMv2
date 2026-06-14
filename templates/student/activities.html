@@ -87,7 +87,18 @@ document.addEventListener('DOMContentLoaded', function() {
         <td>{{ a.activity_type }}</td>
         <td>{{ a.date.strftime('%d %b %Y') if a.date else '—' }}</td>
         <td>{{ a.status }}</td>
-        <td><a href="{{ url_for('student.activity_edit', aid=a.id) }}" class="btn btn-neu btn-sm">Edit</a></td>
+        <td>
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('student.activity_edit', aid=a.id) }}" class="btn btn-neu btn-sm">Edit</a>
+            <form method="post"
+                  action="{{ url_for('student.activity_delete', aid=a.id) }}"
+                  class="d-inline"
+                  onsubmit="return confirm('Delete this activity? This cannot be undone.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-neu btn-sm text-danger">Delete</button>
+            </form>
+          </div>
+        </td>
       </tr>
       {% else %}<tr><td colspan="5">No activities yet.</td></tr>{% endfor %}
     </tbody>

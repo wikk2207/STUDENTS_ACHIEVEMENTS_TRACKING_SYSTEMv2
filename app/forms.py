@@ -4,6 +4,7 @@ from flask_wtf.file import FileAllowed, FileField
 from wtforms import (
     BooleanField,
     DateField,
+    DateTimeLocalField,
     PasswordField,
     SelectField,
     StringField,
@@ -110,6 +111,19 @@ class ResetPasswordForm(FlaskForm):
 
 
 class AchievementForm(FlaskForm):
+    branch = StringField("Branch", validators=[DataRequired(), Length(2, 80)])
+    year = SelectField(
+        "Year",
+        choices=[
+            ("", "Select year"),
+            ("1", "1st Year"),
+            ("2", "2nd Year"),
+            ("3", "3rd Year"),
+            ("4", "4th Year"),
+        ],
+        validators=[DataRequired()],
+    )
+    roll_number = StringField("Roll Number", validators=[DataRequired(), Length(2, 40)])
     title = StringField("Title", validators=[DataRequired(), Length(2, 200)])
     category = SelectField(
         "Category",
@@ -141,13 +155,31 @@ class AchievementForm(FlaskForm):
     description = TextAreaField("Description", validators=[Optional()])
     certificate = FileField(
         "Certificate",
-        validators=[FileAllowed(["pdf", "png", "jpg", "jpeg"], "PDF or images only")],
+        validators=[
+            FileAllowed(
+                ["pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "zip"],
+                "Supported files: PDF, images, documents, spreadsheets, presentations, text, or ZIP",
+            )
+        ],
     )
     submit = SubmitField("Submit")
     save_draft = SubmitField("Save Draft")
 
 
 class ActivityForm(FlaskForm):
+    branch = StringField("Branch", validators=[DataRequired(), Length(2, 80)])
+    year = SelectField(
+        "Year",
+        choices=[
+            ("", "Select year"),
+            ("1", "1st Year"),
+            ("2", "2nd Year"),
+            ("3", "3rd Year"),
+            ("4", "4th Year"),
+        ],
+        validators=[DataRequired()],
+    )
+    roll_number = StringField("Roll Number", validators=[DataRequired(), Length(2, 40)])
     activity_name = StringField("Activity Name", validators=[DataRequired(), Length(2, 200)])
     activity_type = SelectField(
         "Activity Type",
@@ -168,7 +200,12 @@ class ActivityForm(FlaskForm):
     description = TextAreaField("Description", validators=[Optional()])
     document = FileField(
         "Supporting Document",
-        validators=[FileAllowed(["pdf", "png", "jpg", "jpeg"], "PDF or images only")],
+        validators=[
+            FileAllowed(
+                ["pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "zip"],
+                "Supported files: PDF, images, documents, spreadsheets, presentations, text, or ZIP",
+            )
+        ],
     )
     submit = SubmitField("Submit")
     save_draft = SubmitField("Save Draft")
@@ -180,12 +217,62 @@ class MentorReviewForm(FlaskForm):
     submit_reject = SubmitField("Reject")
 
 
+class ClassroomPostForm(FlaskForm):
+    post_type = SelectField(
+        "Type",
+        choices=[("deadline", "Deadline"), ("event", "Upcoming Event")],
+        validators=[DataRequired()],
+    )
+    title = StringField("Title", validators=[DataRequired(), Length(3, 200)])
+    description = TextAreaField("Details", validators=[Optional(), Length(max=3000)])
+    due_at = DateTimeLocalField(
+        "Deadline / Event Date & Time",
+        format="%Y-%m-%dT%H:%M",
+        validators=[DataRequired()],
+    )
+    branch = StringField("Branch / Department", validators=[Optional(), Length(max=80)])
+    year = SelectField(
+        "Year",
+        choices=[
+            ("", "All years"),
+            ("1", "1st Year"),
+            ("2", "2nd Year"),
+            ("3", "3rd Year"),
+            ("4", "4th Year"),
+        ],
+        validators=[Optional()],
+    )
+    action_label = StringField("Action Button Text", validators=[Optional(), Length(max=80)])
+    action_url = StringField("Action Link", validators=[Optional(), Length(max=500)])
+    submit = SubmitField("Publish")
+
+
 class ProfileForm(FlaskForm):
     full_name = StringField("Full Name", validators=[DataRequired(), Length(2, 120)])
     mobile = StringField("Mobile", validators=[Optional()])
     department = StringField("Department", validators=[Optional()])
     year = StringField("Year", validators=[Optional()])
     roll_number = StringField("Roll Number", validators=[Optional()])
+    mentor_designation = StringField(
+        "Current Role/Designation (e.g., Data Scientist, Software Engineer)",
+        validators=[Optional(), Length(max=120)],
+    )
+    mentor_organization = StringField(
+        "Organization/Company",
+        validators=[Optional(), Length(max=120)],
+    )
+    mentor_experience_years = StringField(
+        "Years of Experience",
+        validators=[Optional(), Length(max=40)],
+    )
+    mentor_skills = TextAreaField(
+        "Skills/Expertise",
+        validators=[Optional(), Length(max=2000)],
+    )
+    mentor_bio = TextAreaField(
+        "Short Bio/About Me",
+        validators=[Optional(), Length(max=3000)],
+    )
     profile_photo = FileField(
         "Profile Photo",
         validators=[FileAllowed(["jpg", "jpeg", "png"], "Images only")],

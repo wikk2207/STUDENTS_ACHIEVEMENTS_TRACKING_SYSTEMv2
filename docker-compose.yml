@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: saams-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eduvo_saams
+      POSTGRES_USER: saams
+      POSTGRES_PASSWORD: saams
+    ports:
+      - "5433:5432"
+    volumes:
+      - saams_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saams -d eduvo_saams"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  saams_postgres_data:

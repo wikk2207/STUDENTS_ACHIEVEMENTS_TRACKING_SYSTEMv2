@@ -14,8 +14,8 @@ MENTOR_PASSWORD = "narayan22"
 
 @app.cli.command("seed")
 def seed_data():
-    """Create sample student and mentor accounts."""
-    from app.models import Achievement, User
+    """Create or update the SAAMS mentor account."""
+    from app.models import User
 
     mentor = User.query.filter_by(email=MENTOR_EMAIL).first()
     if not mentor:
@@ -45,38 +45,9 @@ def seed_data():
         old.email = f"archived_{old.id}_{old.email}"[:120]
         old.role = "student"
 
-    student = User.query.filter_by(email="student@example.com").first()
-    if not student:
-        student = User(
-            full_name="Demo Student",
-            email="student@example.com",
-            mobile="9876543210",
-            role="student",
-            department="Computer Science",
-            year="3",
-            roll_number="CS2021001",
-            is_verified=True,
-        )
-        student.set_password("Password123")
-        db.session.add(student)
-        db.session.flush()
-        sample = Achievement(
-            student_id=student.id,
-            title="National Level Hackathon",
-            category="Technical",
-            event_name="Smart India Hackathon",
-            organizer="AICTE",
-            rank="First Place",
-            level="National",
-            description="Won first prize in SIH 2025",
-            status="Approved",
-        )
-        db.session.add(sample)
-
     db.session.commit()
     print(f"Seed complete.")
     print(f"  Mentor: {MENTOR_EMAIL} / {MENTOR_PASSWORD}")
-    print(f"  Student: student@example.com / Password123")
 
 
 if __name__ == "__main__":

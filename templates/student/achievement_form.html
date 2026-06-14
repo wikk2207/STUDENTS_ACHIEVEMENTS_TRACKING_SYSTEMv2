@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/certificate_preview.html" import certificate_preview %}
 {% block title %}{{ action }} Achievement{% endblock %}
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
@@ -67,9 +68,14 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 {% include 'components/voice_form_toggle.html' %}
 <p class="small text-muted mb-3">Say <strong>upload certificate</strong> to attach a file by voice.</p>
-<div class="glass-panel neu-card" style="max-width:720px">
+<div class="glass-panel neu-card" style="max-width:980px">
   <form method="post" enctype="multipart/form-data" id="achievementForm">
     {{ form.hidden_tag() }}
+    <div class="row">
+      <div class="col-md-5 mb-3">{{ form.branch.label(class="form-label") }}{{ form.branch(class="form-control", data_voice_field="branch") }}</div>
+      <div class="col-md-3 mb-3">{{ form.year.label(class="form-label") }}{{ form.year(class="form-select", data_voice_field="year") }}</div>
+      <div class="col-md-4 mb-3">{{ form.roll_number.label(class="form-label") }}{{ form.roll_number(class="form-control", data_voice_field="roll_number") }}</div>
+    </div>
     <div class="mb-3">{{ form.title.label(class="form-label") }}{{ form.title(class="form-control", data_voice_field="title") }}</div>
     <div class="row">
       <div class="col-md-6 mb-3">{{ form.category.label(class="form-label") }}{{ form.category(class="form-select", data_voice_field="category") }}</div>
@@ -84,12 +90,19 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="mb-3">{{ form.description.label(class="form-label") }}{{ form.description(class="form-control", data_voice_field="description", rows=4) }}</div>
     <div class="mb-3 upload-zone" id="certZone">
       <i class="bi bi-cloud-upload fs-2"></i>
-      <p>Drag & drop certificate or click to browse</p>
+      <p class="mb-1">Drag & drop certificate or click to browse</p>
+      <small class="text-muted d-block">Selecting a file will only preview it. Use Submit when you are ready.</small>
       {{ form.certificate(class="certificate-upload d-none", id="certificateInput", accept=".pdf,.jpg,.jpeg,.png") }}
+      <div id="selectedFile" class="selected-file-pill small mt-3" data-selected-file></div>
+      <div id="certificatePreview" class="certificate-selected-preview mt-3" data-certificate-preview></div>
     </div>
     {% if achievement and achievement.certificate %}
-    <p class="small text-muted">Current: {{ achievement.certificate.file_name }} — Status: {{ achievement.certificate.verification_status }}</p>
+      <div class="mb-3">
+        <h6 class="mb-2">Current uploaded certificate</h6>
+        {{ certificate_preview(achievement.certificate, allow_delete=True, compact=True) }}
+      </div>
     {% endif %}
+
     <div class="d-flex gap-2">
       {{ form.submit(class="btn btn-primary-neu btn-submit") }}
       {{ form.save_draft(class="btn btn-secondary-neu") }}

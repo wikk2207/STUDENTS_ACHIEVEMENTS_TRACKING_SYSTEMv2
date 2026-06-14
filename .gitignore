@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 .env
 saams.db
+saams.db-*
+*.log
 static/uploads/*
 !static/uploads/.gitkeep
 instance/

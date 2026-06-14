@@ -13,9 +13,12 @@
     <div class="profile-card-body">
       <h2 class="profile-card-name">{{ user.full_name }}</h2>
       <p class="profile-card-role text-muted mb-1">
-        {% if user.is_mentor %}Mentor{% else %}Student{% endif %}
+        {% if user.is_mentor %}{{ user.mentor_designation or 'Mentor' }}{% else %}Student{% endif %}
         {% if user.department %} · {{ user.department }}{% endif %}
       </p>
+      {% if user.is_mentor and user.mentor_organization %}
+      <p class="profile-card-status small mb-2">{{ user.mentor_organization }}</p>
+      {% endif %}
       {% if status %}
       <p class="profile-card-status small mb-2">{{ status }}</p>
       {% endif %}

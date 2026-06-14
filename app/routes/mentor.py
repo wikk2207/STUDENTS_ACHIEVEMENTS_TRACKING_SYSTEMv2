@@ -6,8 +6,8 @@ from flask_mail import Message as MailMessage
 from flask_login import current_user, login_required
 
 from app import db, mail
-from app.forms import MentorReviewForm
-from app.models import Achievement, Activity, Certificate, Message, Notification, User
+from app.forms import ClassroomPostForm, MentorReviewForm
+from app.models import Achievement, Activity, Certificate, ClassroomPost, Message, Notification, User
 from app.services.otp_service import is_mail_configured
 from app.services.otp_service import send_notification_email
 from app.services.report_service import (
@@ -99,6 +99,8 @@ def dashboard():
         "students_with_certs": students_with_certs,
         "verified_certs": verified_certs,
         "total_submissions": len(achievements),
+        "active_deadlines": ClassroomPost.query.filter_by(post_type="deadline", is_active=True).count(),
+        "upcoming_events": ClassroomPost.query.filter_by(post_type="event", is_active=True).count(),
     }
     student_rows = []
     for s in User.query.filter_by(role="student").order_by(User.full_name).all():
@@ -116,7 +118,56 @@ def dashboard():
         top_students=top[:10],
         recent_pending=pending[:8],
         student_rows=student_rows,
+        classroom_posts=ClassroomPost.query.filter_by(is_active=True).order_by(ClassroomPost.due_at.asc()).limit(6).all(),
     )
+
+
+@bp.route("/deadlines", methods=["GET", "POST"])
+@mentor_required
+def deadlines():
+    form = ClassroomPostForm()
+    if form.validate_on_submit():
+        post = ClassroomPost(
+            mentor_id=current_user.id,
+            post_type=form.post_type.data,
+            title=form.title.data.strip(),
+            description=(form.description.data or "").strip(),
+            due_at=form.due_at.data,
+            branch=(form.branch.data or "").strip() or None,
+            year=form.year.data or None,
+            action_label=(form.action_label.data or "").strip() or None,
+            action_url=(form.action_url.data or "").strip() or None,
+            is_active=True,
+        )
+        db.session.add(post)
+        db.session.flush()
+        _notify_students_for_classroom_post(post)
+        db.session.commit()
+        flash("Deadline/event published to students.", "success")
+        return redirect(url_for("mentor.deadlines"))
+
+    posts = ClassroomPost.query.order_by(ClassroomPost.created_at.desc()).all()
+    return render_template("mentor/deadlines.html", form=form, posts=posts)
+
+
+@bp.route("/deadlines/<int:post_id>/toggle", methods=["POST"])
+@mentor_required
+def deadline_toggle(post_id):
+    post = ClassroomPost.query.get_or_404(post_id)
+    post.is_active = not post.is_active
+    db.session.commit()
+    flash("Post updated.", "success")
+    return redirect(url_for("mentor.deadlines"))
+
+
+@bp.route("/deadlines/<int:post_id>/delete", methods=["POST"])
+@mentor_required
+def deadline_delete(post_id):
+    post = ClassroomPost.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+    flash("Deadline/event deleted.", "info")
+    return redirect(url_for("mentor.deadlines"))
 
 
 @bp.route("/submissions")
@@ -126,29 +177,40 @@ def submissions():
     category = request.args.get("category", "")
     search = request.args.get("q", "").strip()
     dept = request.args.get("department", "")
+    year = request.args.get("year", "")
 
-    q = Achievement.query.filter(Achievement.status != "Draft")
+    q = Achievement.query.join(User, Achievement.student_id == User.id).filter(Achievement.status != "Draft")
     if status:
-        q = q.filter_by(status=status)
+        q = q.filter(Achievement.status == status)
     if category:
-        q = q.filter_by(category=category)
+        q = q.filter(Achievement.category == category)
     if search:
-        q = q.join(User).filter(
+        q = q.filter(
             db.or_(
                 Achievement.title.ilike(f"%{search}%"),
                 User.full_name.ilike(f"%{search}%"),
             )
         )
     if dept:
-        q = q.join(User).filter(User.department == dept)
+        q = q.filter(db.or_(Achievement.branch == dept, User.department == dept))
+    if year:
+        q = q.filter(db.or_(Achievement.year == year, User.year == year))
     items = q.order_by(Achievement.created_at.desc()).all()
-    departments = db.session.query(User.department).filter(User.role == "student").distinct().all()
+    user_departments = db.session.query(User.department).filter(User.role == "student").distinct().all()
+    submission_branches = db.session.query(Achievement.branch).filter(Achievement.branch.isnot(None)).distinct().all()
+    user_years = db.session.query(User.year).filter(User.role == "student").distinct().all()
+    submission_years = db.session.query(Achievement.year).filter(Achievement.year.isnot(None)).distinct().all()
+    departments = sorted({d[0] for d in user_departments + submission_branches if d[0]})
+    years = sorted({y[0] for y in user_years + submission_years if y[0]})
     return render_template(
         "mentor/submissions.html",
         submissions=items,
         status_filter=status,
         category_filter=category,
-        departments=[d[0] for d in departments if d[0]],
+        departments=departments,
+        department_filter=dept,
+        years=years,
+        year_filter=year,
     )
 
 
@@ -384,7 +446,7 @@ def export_full_dataset():
 @bp.route("/export/excel")
 @mentor_required
 def export_all_excel():
-    achievements = Achievement.query.filter(Achievement.status != "Draft").all()
+    achievements = _filtered_submissions_query().all()
     output = export_excel(achievements, sheet_name="All Submissions", include_student=True)
     return send_file(
         output,
@@ -397,7 +459,7 @@ def export_all_excel():
 @bp.route("/export/csv")
 @mentor_required
 def export_all_csv():
-    achievements = Achievement.query.filter(Achievement.status != "Draft").all()
+    achievements = _filtered_submissions_query().all()
     output = export_csv(achievements, include_student=True)
     return send_file(
         output,
@@ -411,9 +473,9 @@ def export_all_csv():
 @mentor_required
 def export_department_pdf():
     dept = request.args.get("department", current_user.department or "All")
-    achievements = Achievement.query.join(User).filter(User.role == "student")
+    achievements = Achievement.query.join(User, Achievement.student_id == User.id).filter(User.role == "student")
     if dept != "All":
-        achievements = achievements.filter(User.department == dept)
+        achievements = achievements.filter(db.or_(Achievement.branch == dept, User.department == dept))
     achievements = achievements.all()
     stats = {
         "total": len(achievements),
@@ -442,8 +504,77 @@ def export_department_pdf():
 @bp.route("/leaderboard")
 @mentor_required
 def leaderboard():
-    return render_template("mentor/leaderboard.html")
 
+    top = []
+
+    for s in User.query.filter_by(role="student").all():
+
+        # Skip Demo Student
+        if s.email == "student@example.com":
+            continue
+
+        ach = Achievement.query.filter_by(
+            student_id=s.id,
+            status="Approved"
+        ).all()
+
+        pts = calculate_achievement_points(ach)
+
+        top.append({
+            "student": s,
+            "points": pts,
+            "count": len(ach)
+        })
+
+    top.sort(key=lambda x: x["points"], reverse=True)
+
+    return render_template(
+        "mentor/leaderboard.html",
+        leaderboard=top
+    )
+
+def _filtered_submissions_query():
+    status = request.args.get("status", "")
+    category = request.args.get("category", "")
+    search = request.args.get("q", "").strip()
+    dept = request.args.get("department", "")
+    year = request.args.get("year", "")
+    q = Achievement.query.join(User, Achievement.student_id == User.id).filter(Achievement.status != "Draft")
+    if status:
+        q = q.filter(Achievement.status == status)
+    if category:
+        q = q.filter(Achievement.category == category)
+    if search:
+        q = q.filter(
+            db.or_(
+                Achievement.title.ilike(f"%{search}%"),
+                User.full_name.ilike(f"%{search}%"),
+            )
+        )
+    if dept:
+        q = q.filter(db.or_(Achievement.branch == dept, User.department == dept))
+    if year:
+        q = q.filter(db.or_(Achievement.year == year, User.year == year))
+    return q.order_by(Achievement.created_at.desc())
+
+
+def _notify_students_for_classroom_post(post):
+    students = User.query.filter_by(role="student")
+    if post.branch:
+        students = students.filter(User.department == post.branch)
+    if post.year:
+        students = students.filter(User.year == post.year)
+
+    label = "New deadline" if post.post_type == "deadline" else "Upcoming event"
+    when = post.due_at.strftime("%d %b %Y, %I:%M %p") if post.due_at else ""
+    for student in students.all():
+        db.session.add(
+            Notification(
+                user_id=student.id,
+                title=label,
+                message=f"{post.title} - {when}",
+            )
+        )
 
 def _conversation_id(first_user_id, second_user_id):
     left, right = sorted([int(first_user_id), int(second_user_id)])

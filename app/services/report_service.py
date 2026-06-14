@@ -1,6 +1,7 @@
 import io
 import json
 from datetime import datetime
+from xml.sax.saxutils import escape
 
 import pandas as pd
 from flask import current_app
@@ -8,7 +9,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.models import Achievement, Activity, Certificate, User
 from app.utils.helpers import calculate_achievement_points
@@ -160,70 +161,262 @@ def export_csv(achievements, include_student=False):
     return io.BytesIO(df.to_csv(index=False).encode("utf-8"))
 
 
-def student_portfolio_pdf(student, achievements, activities, points, badges):
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=50, leftMargin=50, topMargin=50)
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        "Title",
-        parent=styles["Heading1"],
-        fontSize=22,
-        textColor=colors.HexColor("#7C3AED"),
-        spaceAfter=20,
-    )
-    story = [
-        Paragraph("Student Achievement Portfolio", title_style),
-        Paragraph(f"<b>{student.full_name}</b>", styles["Normal"]),
-        Paragraph(f"Email: {student.email}", styles["Normal"]),
-        Paragraph(f"Department: {student.department or 'N/A'} | Year: {student.year or 'N/A'}", styles["Normal"]),
-        Paragraph(f"Achievement Points: {points} | Badges: {', '.join(badges) or 'None'}", styles["Normal"]),
-        Spacer(1, 0.3 * inch),
-        Paragraph("<b>Approved Achievements</b>", styles["Heading2"]),
-    ]
+def _p(value):
+    return escape(str(value or ""))
 
-    approved = [a for a in achievements if a.status == "Approved"]
+
+def _short(value, limit=80):
+    text = str(value or "").strip()
+    return text if len(text) <= limit else text[: limit - 1] + "..."
+
+
+def _achievement_date(achievement):
+    return achievement.event_date or achievement.created_at
+
+
+def _sort_datetime(value):
+    if not value:
+        return datetime.min
+    if isinstance(value, datetime):
+        return value
+    return datetime.combine(value, datetime.min.time())
+
+
+def student_portfolio_pdf(student, achievements, activities, points, badges, portfolio_level=None):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=34,
+        leftMargin=34,
+        topMargin=34,
+        bottomMargin=34,
+        title=f"{student.full_name} Portfolio",
+    )
+    styles = getSampleStyleSheet()
+    navy = colors.HexColor("#111827")
+    ink = colors.HexColor("#1f2937")
+    muted = colors.HexColor("#6b7280")
+    cream = colors.HexColor("#fff7ed")
+    line = colors.HexColor("#e5e7eb")
+    accent = colors.HexColor((portfolio_level or {}).get("color", "#111827"))
+    red = colors.HexColor("#991b1b")
+    green = colors.HexColor("#065f46")
+
+    styles.add(ParagraphStyle("PortfolioTitle", parent=styles["Heading1"], fontSize=26, leading=30, textColor=colors.white, spaceAfter=8))
+    styles.add(ParagraphStyle("PortfolioSub", parent=styles["Normal"], fontSize=9.5, leading=13, textColor=colors.HexColor("#e5e7eb")))
+    styles.add(ParagraphStyle("SectionTitle", parent=styles["Heading2"], fontSize=14, leading=18, textColor=navy, spaceBefore=12, spaceAfter=8))
+    styles.add(ParagraphStyle("Tiny", parent=styles["Normal"], fontSize=7.5, leading=10, textColor=muted))
+    styles.add(ParagraphStyle("CardLabel", parent=styles["Normal"], fontSize=8, leading=10, textColor=muted))
+    styles.add(ParagraphStyle("CardValue", parent=styles["Heading2"], fontSize=16, leading=18, textColor=navy, spaceAfter=0))
+    styles.add(ParagraphStyle("Badge", parent=styles["Normal"], fontSize=8.5, leading=11, textColor=navy))
+
+    approved = sorted(
+        [a for a in achievements if a.status == "Approved"],
+        key=lambda a: _sort_datetime(_achievement_date(a)),
+        reverse=True,
+    )
+    pending = [a for a in achievements if a.status in ("Submitted", "Under Review")]
+    rejected = [a for a in achievements if a.status == "Rejected"]
+    certs = [a.certificate for a in achievements if a.certificate]
+    level = portfolio_level or {"name": "Portfolio Starter", "label": "Level 1", "next": "60 pts or 3 approved achievements", "color": "#111827"}
+
+    story = []
+
+    hero_left = [
+        Paragraph("Student Achievement Portfolio", styles["PortfolioTitle"]),
+        Paragraph(
+            f"<b>{_p(student.full_name)}</b><br/>{_p(student.email)}<br/>"
+            f"{_p(student.department or 'Department N/A')} | Year {_p(student.year or 'N/A')} | Roll {_p(student.roll_number or 'N/A')}",
+            styles["PortfolioSub"],
+        ),
+    ]
+    hero_right = [
+        Paragraph(f"<b>{points}</b><br/>Achievement Points", ParagraphStyle("HeroPoints", parent=styles["Normal"], fontSize=20, leading=22, alignment=1, textColor=colors.white)),
+        Spacer(1, 4),
+        Paragraph(f"{_p(level['label'])}: {_p(level['name'])}", ParagraphStyle("HeroLevel", parent=styles["Normal"], fontSize=9, leading=11, alignment=1, textColor=colors.HexColor("#fde68a"))),
+    ]
+    hero = Table([[hero_left, hero_right]], colWidths=[4.8 * inch, 1.7 * inch])
+    hero.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), navy),
+        ("BOX", (0, 0), (-1, -1), 0, navy),
+        ("LEFTPADDING", (0, 0), (-1, -1), 18),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 18),
+        ("TOPPADDING", (0, 0), (-1, -1), 18),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 18),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(hero)
+    story.append(Spacer(1, 0.18 * inch))
+
+    summary_cards = [
+        [Paragraph("Approved", styles["CardLabel"]), Paragraph(str(len(approved)), styles["CardValue"])],
+        [Paragraph("Pending", styles["CardLabel"]), Paragraph(str(len(pending)), styles["CardValue"])],
+        [Paragraph("Activities", styles["CardLabel"]), Paragraph(str(len(activities)), styles["CardValue"])],
+        [Paragraph("Certificates", styles["CardLabel"]), Paragraph(str(len(certs)), styles["CardValue"])],
+    ]
+    card_table = Table([summary_cards], colWidths=[1.62 * inch] * 4)
+    card_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), cream),
+        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#fed7aa")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.6, colors.HexColor("#fed7aa")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+    ]))
+    story.append(card_table)
+
+    level_text = f"<b>{_p(level['name'])}</b>"
+    if level.get("next"):
+        level_text += f" - Next milestone: {_p(level['next'])}"
+    level_table = Table([[Paragraph(level_text, styles["Normal"])]], colWidths=[6.5 * inch])
+    level_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+        ("BOX", (0, 0), (-1, -1), 1.2, accent),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(Spacer(1, 0.12 * inch))
+    story.append(level_table)
+
+    story.append(Paragraph("Badges", styles["SectionTitle"]))
+    if badges:
+        badge_cells = []
+        for badge in badges[:12]:
+            badge_cells.append(Paragraph(f"<b>{_p(badge)}</b>", styles["Badge"]))
+        rows = [badge_cells[i:i + 3] for i in range(0, len(badge_cells), 3)]
+        for row in rows:
+            while len(row) < 3:
+                row.append("")
+        badge_table = Table(rows, colWidths=[2.1 * inch] * 3, hAlign="LEFT")
+        badge_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#eef2ff")),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#c7d2fe")),
+            ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.white),
+            ("LEFTPADDING", (0, 0), (-1, -1), 9),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 9),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ]))
+        story.append(badge_table)
+    else:
+        story.append(Paragraph("No badges yet. Approved submissions will unlock portfolio badges.", styles["Normal"]))
+
+    story.append(Paragraph("Achievement Timeline", styles["SectionTitle"]))
+    timeline_items = []
+    for a in approved[:6]:
+        date = _achievement_date(a)
+        timeline_items.append([
+            Paragraph(date.strftime("%d %b %Y") if date else "Date N/A", styles["Tiny"]),
+            Paragraph(f"<b>{_p(_short(a.title, 70))}</b><br/><font color='#6b7280'>{_p(a.category)} | {_p(a.level or 'College')}</font>", styles["Normal"]),
+        ])
+    if timeline_items:
+        timeline = Table(timeline_items, colWidths=[1.1 * inch, 5.25 * inch])
+        timeline.setStyle(TableStyle([
+            ("LINEBEFORE", (1, 0), (1, -1), 1.4, accent),
+            ("LEFTPADDING", (1, 0), (1, -1), 14),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]))
+        story.append(timeline)
+    else:
+        story.append(Paragraph("No approved achievement timeline yet.", styles["Normal"]))
+
+    story.append(Paragraph("Approved Achievements", styles["SectionTitle"]))
+
     if approved:
-        data = [["Title", "Category", "Event", "Date", "Rank", "Level"]]
-        for a in approved:
+        data = [["Title", "Category", "Event", "Date", "Rank", "Level", "Certificate"]]
+        for a in approved[:18]:
             data.append([
-                a.title[:40],
-                a.category,
-                (a.event_name or "")[:30],
+                Paragraph(_p(_short(a.title, 34)), styles["Tiny"]),
+                Paragraph(_p(a.category), styles["Tiny"]),
+                Paragraph(_p(_short(a.event_name, 28)), styles["Tiny"]),
                 a.event_date.strftime("%Y-%m-%d") if a.event_date else "",
-                (a.rank or "")[:20],
+                Paragraph(_p(_short(a.rank, 18)), styles["Tiny"]),
                 a.level or "",
+                a.certificate.verification_status if a.certificate else "N/A",
             ])
-        t = Table(data, colWidths=[1.4 * inch, 0.9 * inch, 1.2 * inch, 0.8 * inch, 0.8 * inch, 0.8 * inch])
+        t = Table(data, colWidths=[1.25 * inch, 0.78 * inch, 1.1 * inch, 0.78 * inch, 0.72 * inch, 0.72 * inch, 1.05 * inch], repeatRows=1)
         t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#7C3AED")),
+            ("BACKGROUND", (0, 0), (-1, 0), navy),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#ffffff")),
             ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("GRID", (0, 0), (-1, -1), 0.35, line),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9fafb")]),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
         ]))
         story.append(t)
     else:
         story.append(Paragraph("No approved achievements yet.", styles["Normal"]))
 
-    story.append(Spacer(1, 0.3 * inch))
-    story.append(Paragraph("<b>Activities</b>", styles["Heading2"]))
-    act_rows = [["Name", "Type", "Date", "Status"]]
-    for act in activities[:20]:
+    story.append(Paragraph("Activities & Participation", styles["SectionTitle"]))
+    act_rows = [["Name", "Type", "Role", "Date", "Status"]]
+    for act in activities[:14]:
         act_rows.append([
-            act.activity_name[:40],
+            Paragraph(_p(_short(act.activity_name, 36)), styles["Tiny"]),
             act.activity_type or "",
+            Paragraph(_p(_short(act.role, 18)), styles["Tiny"]),
             act.date.strftime("%Y-%m-%d") if act.date else "",
             act.status,
         ])
     if len(act_rows) > 1:
-        t2 = Table(act_rows, colWidths=[2 * inch, 1.2 * inch, 1 * inch, 1 * inch])
-        t2.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey), ("FONTSIZE", (0, 0), (-1, -1), 8)]))
+        t2 = Table(act_rows, colWidths=[1.7 * inch, 1.1 * inch, 1.1 * inch, 1 * inch, 1 * inch], repeatRows=1)
+        t2.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), accent),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("GRID", (0, 0), (-1, -1), 0.35, line),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9fafb")]),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
         story.append(t2)
+    else:
+        story.append(Paragraph("No activities submitted yet.", styles["Normal"]))
+
+    story.append(Paragraph("Certificate Verification Summary", styles["SectionTitle"]))
+    if certs:
+        verified = len([c for c in certs if c.verification_status in ("Verified", "Likely Authentic")])
+        risky = len([c for c in certs if c.verification_status in ("Suspected Fake", "Name Mismatch") or c.fraud_risk in ("High", "Medium")])
+        cert_summary = Table([
+            [
+                Paragraph("Uploaded Certificates", styles["CardLabel"]),
+                Paragraph("Verified / Authentic", styles["CardLabel"]),
+                Paragraph("Needs Attention", styles["CardLabel"]),
+            ],
+            [
+                Paragraph(str(len(certs)), styles["CardValue"]),
+                Paragraph(str(verified), styles["CardValue"]),
+                Paragraph(str(risky), styles["CardValue"]),
+            ],
+        ], colWidths=[2.1 * inch] * 3)
+        cert_summary.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+            ("GRID", (0, 0), (-1, -1), 0.45, line),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(cert_summary)
+    else:
+        story.append(Paragraph("No certificates uploaded yet.", styles["Normal"]))
 
     story.append(Spacer(1, 0.5 * inch))
     story.append(
         Paragraph(
-            f"Generated by SAAMS on {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
-            styles["Italic"],
+            f"Generated by SAAMS on {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} | This portfolio includes student-submitted and mentor-reviewed records.",
+            styles["Tiny"],
         )
     )
     doc.build(story)

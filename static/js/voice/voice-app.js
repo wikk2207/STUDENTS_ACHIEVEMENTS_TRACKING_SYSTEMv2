@@ -41,6 +41,12 @@ window.SAAMS.Voice = (function () {
     if (VoiceSequencer.isLanding()) {
       document.addEventListener('click', arm, { once: true, capture: true });
       document.addEventListener('touchstart', arm, { once: true, capture: true });
+      setTimeout(() => {
+        if (!sessionStorage.getItem('saams_voice_seq_started')) {
+          sessionStorage.setItem('saams_voice_seq_started', '1');
+          VoiceSequencer.commandMode();
+        }
+      }, 900);
     } else {
       setTimeout(arm, 150);
     }

@@ -3,7 +3,8 @@
 {% block content %}
 <div class="page-header d-flex justify-content-between flex-wrap gap-2">
   <h1>Student Submissions</h1>
-  <div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% include 'components/theme_switcher.html' %}
     <a href="{{ url_for('mentor.export_all_excel') }}" class="btn btn-neu btn-sm">Export Excel</a>
     <a href="{{ url_for('mentor.export_all_csv') }}" class="btn btn-neu btn-sm">Export CSV</a>
   </div>
@@ -12,22 +13,27 @@
   <div class="col-md-3"><input name="q" class="form-control" placeholder="Search student or title" value="{{ request.args.get('q','') }}"></div>
   <div class="col-md-2"><select name="status" class="form-select"><option value="">All status</option>{% for s in ['Submitted','Under Review','Approved','Rejected'] %}<option value="{{ s }}" {% if status_filter==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
   <div class="col-md-2"><select name="category" class="form-select"><option value="">Category</option>{% for c in ['Academic','Technical','Sports','Cultural','Research','Certification','Leadership'] %}<option value="{{ c }}" {% if category_filter==c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><select name="department" class="form-select"><option value="">All branches</option>{% for d in departments %}<option value="{{ d }}" {% if department_filter==d %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
+  <div class="col-md-1"><select name="year" class="form-select"><option value="">Year</option>{% for y in years %}<option value="{{ y }}" {% if year_filter==y %}selected{% endif %}>{{ y }}</option>{% endfor %}</select></div>
   <div class="col-md-2"><button class="btn btn-primary-neu">Filter</button></div>
 </form>
 <div class="glass-panel table-glass">
   <table class="table mb-0">
-    <thead><tr><th>Student</th><th>Title</th><th>Category</th><th>Status</th><th>OCR</th><th></th></tr></thead>
+    <thead><tr><th>Student</th><th>Branch</th><th>Year</th><th>Roll No</th><th>Title</th><th>Category</th><th>Status</th><th>OCR</th><th></th></tr></thead>
     <tbody>
       {% for s in submissions %}
       <tr>
         <td>{{ s.student.full_name if s.student else '—' }}</td>
+        <td>{{ s.branch or (s.student.department if s.student else '') or '—' }}</td>
+        <td>{{ s.year or (s.student.year if s.student else '') or '—' }}</td>
+        <td>{{ s.roll_number or (s.student.roll_number if s.student else '') or '—' }}</td>
         <td>{{ s.title }}</td>
         <td>{{ s.category }}</td>
         <td>{{ s.status }}</td>
         <td>{{ s.certificate.verification_status if s.certificate else 'N/A' }}</td>
         <td><a href="{{ url_for('mentor.review_submission', aid=s.id) }}" class="btn btn-neu btn-sm">Review</a></td>
       </tr>
-      {% else %}<tr><td colspan="6">No submissions.</td></tr>{% endfor %}
+      {% else %}<tr><td colspan="9">No submissions.</td></tr>{% endfor %}
     </tbody>
   </table>
 </div>

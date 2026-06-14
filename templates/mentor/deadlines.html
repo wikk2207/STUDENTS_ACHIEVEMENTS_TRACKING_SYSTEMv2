@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Deadlines & Events{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h1>Deadlines & Events</h1>
+    <p class="text-muted mb-0">Publish classroom-style deadlines and upcoming opportunities for students.</p>
+  </div>
+  {% include 'components/theme_switcher.html' %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="surface-card p-4 classroom-panel">
+      <h5 class="mb-3"><i class="bi bi-calendar2-plus"></i> Create Post</h5>
+      <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-md-5">{{ form.post_type.label(class="form-label") }}{{ form.post_type(class="form-select") }}</div>
+          <div class="col-md-7">{{ form.due_at.label(class="form-label") }}{{ form.due_at(class="form-control") }}</div>
+          <div class="col-12">{{ form.title.label(class="form-label") }}{{ form.title(class="form-control", placeholder="Submit certificates before Friday") }}</div>
+          <div class="col-12">{{ form.description.label(class="form-label") }}{{ form.description(class="form-control", rows=4, placeholder="Write instructions, rules, venue, links, or what students need to submit.") }}</div>
+          <div class="col-md-6">{{ form.branch.label(class="form-label") }}{{ form.branch(class="form-control", placeholder="All branches") }}</div>
+          <div class="col-md-6">{{ form.year.label(class="form-label") }}{{ form.year(class="form-select") }}</div>
+          <div class="col-md-5">{{ form.action_label.label(class="form-label") }}{{ form.action_label(class="form-control", placeholder="Submit now") }}</div>
+          <div class="col-md-7">{{ form.action_url.label(class="form-label") }}{{ form.action_url(class="form-control", placeholder="/student/achievements/add") }}</div>
+        </div>
+        <button class="btn btn-primary-neu w-100 mt-4" type="submit"><i class="bi bi-send"></i> Publish</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="surface-card p-4 classroom-panel">
+      <h5 class="mb-3"><i class="bi bi-megaphone"></i> Published Posts</h5>
+      <div class="classroom-feed">
+        {% for post in posts %}
+        <article class="classroom-card {% if not post.is_active %}classroom-muted{% endif %}">
+          <div class="classroom-card-top">
+            <span class="classroom-type classroom-type-{{ post.post_type }}">
+              <i class="bi {{ 'bi-hourglass-split' if post.is_deadline else 'bi-stars' }}"></i>
+              {{ 'Deadline' if post.is_deadline else 'Upcoming Event' }}
+            </span>
+            <span class="classroom-time">{{ post.due_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+          </div>
+          <h5>{{ post.title }}</h5>
+          {% if post.description %}<p>{{ post.description }}</p>{% endif %}
+          <div class="classroom-meta">
+            <span><i class="bi bi-diagram-3"></i> {{ post.branch or 'All branches' }}</span>
+            <span><i class="bi bi-mortarboard"></i> {{ post.year ~ ' year' if post.year else 'All years' }}</span>
+            <span><i class="bi bi-person"></i> {{ post.mentor.full_name }}</span>
+          </div>
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <form method="post" action="{{ url_for('mentor.deadline_toggle', post_id=post.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-neu btn-sm" type="submit">{{ 'Hide' if post.is_active else 'Activate' }}</button>
+            </form>
+            <form method="post" action="{{ url_for('mentor.deadline_delete', post_id=post.id) }}" onsubmit="return confirm('Delete this deadline/event?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-neu btn-sm text-danger" type="submit">Delete</button>
+            </form>
+          </div>
+        </article>
+        {% else %}
+        <p class="text-muted mb-0">No deadlines or events yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

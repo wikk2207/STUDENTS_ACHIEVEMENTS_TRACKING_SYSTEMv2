@@ -1,12 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Review Submission{% endblock %}
 {% block content %}
-<div class="page-header"><h1>Review: {{ achievement.title }}</h1></div>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <h1>Review: {{ achievement.title }}</h1>
+  {% include 'components/theme_switcher.html' %}
+</div>
 <div class="row g-4">
   <div class="col-lg-6">
     <div class="glass-panel neu-card card-3d">
       <h5>Submission Details</h5>
       <p><strong>Student:</strong> {{ achievement.student.full_name }} ({{ achievement.student.email }})</p>
+      <div class="row g-2 small mb-3">
+        <div class="col-md-4"><strong>Branch:</strong> {{ achievement.branch or achievement.student.department or '—' }}</div>
+        <div class="col-md-4"><strong>Year:</strong> {{ achievement.year or achievement.student.year or '—' }}</div>
+        <div class="col-md-4"><strong>Roll No:</strong> {{ achievement.roll_number or achievement.student.roll_number or '—' }}</div>
+      </div>
       <p><strong>Category:</strong> {{ achievement.category }} · {{ achievement.level }}</p>
       <p><strong>Event:</strong> {{ achievement.event_name or '—' }}</p>
       <p><strong>Organizer:</strong> {{ achievement.organizer or '—' }}</p>

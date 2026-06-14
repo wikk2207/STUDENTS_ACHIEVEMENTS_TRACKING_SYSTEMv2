@@ -54,6 +54,11 @@ class User(UserMixin, db.Model):
     employee_id = db.Column(db.String(40))
     roll_number = db.Column(db.String(40))
     profile_photo = db.Column(db.String(255))
+    mentor_designation = db.Column(db.String(120))
+    mentor_organization = db.Column(db.String(120))
+    mentor_experience_years = db.Column(db.String(40))
+    mentor_skills = db.Column(db.Text)
+    mentor_bio = db.Column(db.Text)
     is_verified = db.Column(db.Boolean, default=False)
     google_id = db.Column(db.String(120), unique=True, nullable=True)
     dark_mode = db.Column(db.Boolean, default=False)
@@ -107,6 +112,9 @@ class Achievement(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    branch = db.Column(db.String(80))
+    year = db.Column(db.String(20))
+    roll_number = db.Column(db.String(40))
     title = db.Column(db.String(200), nullable=False)
     category = db.Column(db.String(50), nullable=False)
     event_name = db.Column(db.String(200))
@@ -137,6 +145,9 @@ class Activity(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    branch = db.Column(db.String(80))
+    year = db.Column(db.String(20))
+    roll_number = db.Column(db.String(40))
     activity_name = db.Column(db.String(200), nullable=False)
     activity_type = db.Column(db.String(80))
     role = db.Column(db.String(80))
@@ -194,3 +205,49 @@ class Notification(db.Model):
     message = db.Column(db.Text)
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=utcnow)
+
+
+class ClassroomPost(db.Model):
+    __tablename__ = "classroom_posts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    mentor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    post_type = db.Column(db.String(20), nullable=False, default="deadline")
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    due_at = db.Column(db.DateTime, nullable=False)
+    branch = db.Column(db.String(80))
+    year = db.Column(db.String(20))
+    action_label = db.Column(db.String(80))
+    action_url = db.Column(db.String(500))
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+    mentor = db.relationship("User", backref=db.backref("classroom_posts", lazy="dynamic"))
+    reads = db.relationship(
+        "ClassroomPostRead",
+        backref="post",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def is_deadline(self):
+        return self.post_type == "deadline"
+
+    @property
+    def is_event(self):
+        return self.post_type == "event"
+
+
+class ClassroomPostRead(db.Model):
+    __tablename__ = "classroom_post_reads"
+
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("classroom_posts.id"), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    read_at = db.Column(db.DateTime, default=utcnow)
+
+    student = db.relationship("User", backref=db.backref("classroom_post_reads", lazy="dynamic"))
+    __table_args__ = (db.UniqueConstraint("post_id", "student_id", name="uq_classroom_post_read"),)

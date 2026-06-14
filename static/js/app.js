@@ -4,23 +4,38 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebar?.classList.toggle('open');
   });
 
+  initBackgroundVideos();
+
   initThemeSwitcher();
 
   loadNotifications();
 
-  const search = document.getElementById('commandBarInput') || document.getElementById('globalSearch');
-  search?.addEventListener('keydown', async (e) => {
-    if (e.key !== 'Enter') return;
-    const q = search.value.trim();
-    if (!q) return;
-    const res = await fetch(`/api/search/achievements?q=${encodeURIComponent(q)}`);
-    const data = await res.json();
-    if (data.length && window.SAAMS.role === 'student') {
-      window.location.href = window.SAAMS.urls.achievements + `?q=${encodeURIComponent(q)}`;
-    }
-  });
-
 });
+
+function initBackgroundVideos() {
+  document.querySelectorAll('.site-video-bg video, .welcome-bg-video').forEach((video) => {
+    video.playbackRate = 0.35;
+    video.defaultPlaybackRate = 0.35;
+    video.muted = true;
+    video.playsInline = true;
+
+    const keepPlaying = () => {
+      video.playbackRate = 0.35;
+      if (video.paused) {
+        video.play().catch(() => {});
+      }
+    };
+
+    video.addEventListener('loadedmetadata', keepPlaying);
+    video.addEventListener('canplay', keepPlaying);
+    video.addEventListener('ratechange', () => {
+      if (video.playbackRate !== 0.35) {
+        video.playbackRate = 0.35;
+      }
+    });
+    keepPlaying();
+  });
+}
 
 function initThemeSwitcher() {
   if (document.body.classList.contains('landing-page') || !window.SAAMS?.isAuthenticated) {
@@ -35,7 +50,7 @@ function initThemeSwitcher() {
   };
   const html = document.documentElement;
   const saved = localStorage.getItem('saams-theme');
-  const initialTheme = themes.includes(saved) ? saved : html.dataset.theme || 'light';
+  const initialTheme = themes.includes(saved) ? saved : (themes.includes(html.dataset.theme) ? html.dataset.theme : 'light');
 
   const applyTheme = (theme) => {
     html.dataset.theme = theme;
@@ -109,7 +124,15 @@ async function loadNotifications() {
   } catch (_) {}
 }
 
-const CHART_COLORS = ['#7C3AED', '#A855F7', '#C084FC', '#DDD6FE', '#EDE9FE', '#F3E8FF', '#E9D5FF'];
+const CHART_COLORS = [
+  '#FF6B6B', // red
+  '#4ECDC4', // teal
+  '#FFE66D', // yellow
+  '#1A535C', // dark teal
+  '#FF9F1C', // orange
+  '#6A4C93', // purple
+  '#00C853'  // green
+];
 
 function initStudentCharts() {
   const catEl = document.getElementById('categoryChart');
@@ -180,17 +203,28 @@ function initMentorCharts() {
         type: 'bar',
         data: {
           labels: Object.keys(data.category || {}),
-          datasets: [{ label: 'Submissions', data: Object.values(data.category || {}), backgroundColor: '#7C3AED' }],
+          datasets: [{
+  label: 'Submissions',
+  data: Object.values(data.category || {}),
+  backgroundColor: '#5B8DEF'
+}],
         },
         options: { responsive: true, maintainAspectRatio: false },
       });
       const deptEl = document.getElementById('mentorDeptChart');
       if (deptEl) {
         new Chart(deptEl, {
-          type: 'pie',
+          type: 'doughnut',
           data: {
             labels: Object.keys(data.department || {}),
-            datasets: [{ data: Object.values(data.department || {}), backgroundColor: ['#7C3AED', '#A855F7', '#C084FC', '#E9D5FF'] }],
+            datasets: [{ data: Object.values(data.department || {}), backgroundColor: [
+  '#FF8FAB',
+  '#72DDF7',
+  '#F9C74F',
+  '#90BE6D',
+  '#C77DFF',
+  '#F9844A'
+] }],
           },
           options: { responsive: true, maintainAspectRatio: false },
         });

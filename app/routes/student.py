@@ -1,8 +1,10 @@
 import os
+import mimetypes
 from datetime import datetime
 from functools import wraps
 
 from flask import (
+    abort,
     Blueprint,
     current_app,
     flash,
@@ -14,10 +16,21 @@ from flask import (
 )
 from flask_mail import Message as MailMessage
 from flask_login import current_user, login_required
+from flask import send_file, flash, redirect, url_for, current_app
 
 from app import db, mail
 from app.forms import AchievementForm, ActivityForm, ReportForm
-from app.models import Achievement, Activity, Certificate, Message, Notification, Report, User
+from app.models import (
+    Achievement,
+    Activity,
+    Certificate,
+    ClassroomPost,
+    ClassroomPostRead,
+    Message,
+    Notification,
+    Report,
+    User,
+)
 from app.services.otp_service import is_mail_configured
 from app.services.ocr_service import process_certificate_upload
 from app.services.otp_service import send_notification_email
@@ -26,6 +39,7 @@ from app.utils.achievement_classifier import classify_achievement
 from app.utils.helpers import (
     calculate_achievement_points,
     get_badges,
+    get_portfolio_level,
     log_action,
     save_upload,
 )
@@ -230,6 +244,7 @@ def dashboard():
     activities = Activity.query.filter_by(student_id=current_user.id).all()
     points = calculate_achievement_points(achievements)
     badges = get_badges(achievements, activities)
+    portfolio_level = get_portfolio_level(points, len([a for a in achievements if a.status == "Approved"]))
     recent = (
         Achievement.query.filter_by(student_id=current_user.id)
         .order_by(Achievement.updated_at.desc())
@@ -264,6 +279,7 @@ def dashboard():
         "approved": len([a for a in achievements if a.status == "Approved"]),
         "rejected": len([a for a in achievements if a.status == "Rejected"]),
         "points": points,
+        "portfolio_level": portfolio_level,
     }
     # Status breakdown
     status_counts = Counter([a.status for a in achievements])
@@ -304,6 +320,7 @@ def dashboard():
         "student/dashboard.html",
         stats=stats,
         badges=badges,
+        portfolio_level=portfolio_level,
         recent=recent,
         notifications=notifications,
         category_counts=category_counts,
@@ -314,7 +331,37 @@ def dashboard():
         level_colors_list=level_colors_list,
         monthly_labels=monthly_labels,
         monthly_data=monthly_data,
+        classroom_posts=_student_classroom_posts().limit(5).all(),
+        read_post_ids=_student_read_post_ids(),
     )
+
+
+@bp.route("/deadlines")
+@student_required
+def deadlines():
+    posts = _student_classroom_posts().all()
+    return render_template(
+        "student/deadlines.html",
+        posts=posts,
+        read_post_ids=_student_read_post_ids(),
+    )
+
+
+@bp.route("/deadlines/<int:post_id>/read", methods=["POST"])
+@student_required
+def deadline_mark_read(post_id):
+    post = ClassroomPost.query.filter_by(id=post_id, is_active=True).first_or_404()
+    if not _post_matches_student(post, current_user):
+        abort(403)
+    existing = ClassroomPostRead.query.filter_by(
+        post_id=post.id,
+        student_id=current_user.id,
+    ).first()
+    if not existing:
+        db.session.add(ClassroomPostRead(post_id=post.id, student_id=current_user.id))
+        db.session.commit()
+    flash("Marked as read.", "success")
+    return redirect(request.referrer or url_for("student.deadlines"))
 
 
 @bp.route("/achievements")
@@ -336,6 +383,7 @@ def achievements_list():
 @student_required
 def achievement_add():
     form = AchievementForm()
+    _prefill_submission_identity(form)
     if form.validate_on_submit():
         status = "Draft" if form.save_draft.data else "Submitted"
         # AI-based category classification if category is not selected or is 'Other'
@@ -345,6 +393,9 @@ def achievement_add():
             category = classify_achievement(text)
         ach = Achievement(
             student_id=current_user.id,
+            branch=form.branch.data,
+            year=form.year.data,
+            roll_number=form.roll_number.data,
             title=form.title.data,
             category=category,
             event_name=form.event_name.data,
@@ -373,7 +424,11 @@ def achievement_add():
 def achievement_edit(aid):
     ach = Achievement.query.filter_by(id=aid, student_id=current_user.id).first_or_404()
     form = AchievementForm(obj=ach)
+    _prefill_submission_identity(form, ach)
     if form.validate_on_submit():
+        ach.branch = form.branch.data
+        ach.year = form.year.data
+        ach.roll_number = form.roll_number.data
         ach.title = form.title.data
         # AI-based category classification if category is not selected or is 'Other'
         category = form.category.data
@@ -439,6 +494,7 @@ def activities_list():
 @student_required
 def activity_add():
     form = ActivityForm()
+    _prefill_submission_identity(form)
     if form.validate_on_submit():
         status = "Draft" if form.save_draft.data else "Submitted"
         # AI-based classification for activity_type if 'Other' or not selected
@@ -448,6 +504,9 @@ def activity_add():
             activity_type = classify_achievement(text)
         act = Activity(
             student_id=current_user.id,
+            branch=form.branch.data,
+            year=form.year.data,
+            roll_number=form.roll_number.data,
             activity_name=form.activity_name.data,
             activity_type=activity_type,
             role=form.role.data,
@@ -472,7 +531,11 @@ def activity_add():
 def activity_edit(aid):
     act = Activity.query.filter_by(id=aid, student_id=current_user.id).first_or_404()
     form = ActivityForm(obj=act)
+    _prefill_submission_identity(form, act)
     if form.validate_on_submit():
+        act.branch = form.branch.data
+        act.year = form.year.data
+        act.roll_number = form.roll_number.data
         act.activity_name = form.activity_name.data
         # AI-based classification for activity_type if 'Other' or not selected
         activity_type = form.activity_type.data
@@ -493,6 +556,18 @@ def activity_edit(aid):
     return render_template("student/activity_form.html", form=form, action="Edit", activity=act)
 
 
+@bp.route("/activities/<int:aid>/delete", methods=["POST"])
+@student_required
+def activity_delete(aid):
+    act = Activity.query.filter_by(id=aid, student_id=current_user.id).first_or_404()
+    if act.certificate:
+        db.session.delete(act.certificate)
+    db.session.delete(act)
+    db.session.commit()
+    flash("Activity deleted.", "info")
+    return redirect(url_for("student.activities_list"))
+
+
 @bp.route("/reports")
 @student_required
 def reports():
@@ -506,7 +581,8 @@ def portfolio_pdf():
     activities = Activity.query.filter_by(student_id=current_user.id).all()
     points = calculate_achievement_points(achievements)
     badges = get_badges(achievements, activities)
-    pdf = student_portfolio_pdf(current_user, achievements, activities, points, badges)
+    portfolio_level = get_portfolio_level(points, len([a for a in achievements if a.status == "Approved"]))
+    pdf = student_portfolio_pdf(current_user, achievements, activities, points, badges, portfolio_level)
     return send_file(
         pdf,
         mimetype="application/pdf",
@@ -543,6 +619,124 @@ def public_portfolio():
         activities=activities,
         points=points,
     )
+
+@bp.route("/certificate/<int:cert_id>")
+@login_required
+def view_certificate(cert_id):
+    cert = Certificate.query.get_or_404(cert_id)
+    if not _can_access_certificate(cert):
+        abort(403)
+
+    certificate_path = _certificate_abs_path(cert)
+
+    if not os.path.exists(certificate_path):
+        flash("Certificate file not found. Please upload it again.", "danger")
+        return redirect(url_for("student.achievements_list"))
+
+    return send_file(
+        certificate_path,
+        mimetype=mimetypes.guess_type(cert.file_name or cert.file_path)[0] or "application/octet-stream",
+        as_attachment=False,
+        download_name=cert.file_name,
+    )
+
+
+@bp.route("/certificate/<int:cert_id>/download")
+@login_required
+def download_certificate(cert_id):
+    cert = Certificate.query.get_or_404(cert_id)
+    if not _can_access_certificate(cert):
+        abort(403)
+    certificate_path = _certificate_abs_path(cert)
+    if not os.path.exists(certificate_path):
+        flash("Certificate file not found. Please upload it again.", "danger")
+        return redirect(url_for("student.achievements_list"))
+    return send_file(certificate_path, as_attachment=True, download_name=cert.file_name)
+
+
+@bp.route("/certificate/<int:cert_id>/delete", methods=["POST"])
+@student_required
+def delete_certificate(cert_id):
+    cert = Certificate.query.get_or_404(cert_id)
+    owner = _certificate_owner(cert)
+    if not owner or owner.id != current_user.id:
+        abort(403)
+    certificate_path = _certificate_abs_path(cert)
+    if os.path.exists(certificate_path):
+        os.remove(certificate_path)
+    db.session.delete(cert)
+    db.session.commit()
+    flash("Uploaded document deleted.", "success")
+    return redirect(request.referrer or url_for("student.achievements_list"))
+
+
+def _certificate_owner(cert):
+    if cert.achievement:
+        return cert.achievement.student
+    if cert.activity:
+        return cert.activity.student
+    return None
+
+
+def _prefill_submission_identity(form, submission=None):
+    if request.method != "GET":
+        return
+    if not getattr(form.branch, "data", None):
+        form.branch.data = (getattr(submission, "branch", None) or current_user.department or "")
+    if not getattr(form.year, "data", None):
+        form.year.data = (getattr(submission, "year", None) or current_user.year or "")
+    if not getattr(form.roll_number, "data", None):
+        form.roll_number.data = (
+            getattr(submission, "roll_number", None) or current_user.roll_number or ""
+        )
+
+
+def _can_access_certificate(cert):
+    owner = _certificate_owner(cert)
+    if not owner:
+        return False
+    return current_user.is_authenticated and (current_user.is_mentor or owner.id == current_user.id)
+
+
+def _certificate_abs_path(cert):
+    static_root = os.path.abspath(current_app.static_folder)
+    path = os.path.abspath(os.path.join(static_root, cert.file_path or ""))
+    if not path.startswith(static_root):
+        abort(404)
+    return path
+
+
+def _student_classroom_posts():
+    department = (current_user.department or "").strip()
+    year = (current_user.year or "").strip()
+    return ClassroomPost.query.filter(
+        ClassroomPost.is_active.is_(True),
+        db.or_(
+            ClassroomPost.branch.is_(None),
+            ClassroomPost.branch == "",
+            db.func.lower(ClassroomPost.branch) == department.lower(),
+        ),
+        db.or_(
+            ClassroomPost.year.is_(None),
+            ClassroomPost.year == "",
+            ClassroomPost.year == year,
+        ),
+    ).order_by(ClassroomPost.due_at.asc())
+
+
+def _student_read_post_ids():
+    return {
+        row[0]
+        for row in db.session.query(ClassroomPostRead.post_id)
+        .filter_by(student_id=current_user.id)
+        .all()
+    }
+
+
+def _post_matches_student(post, student):
+    branch_ok = not post.branch or (post.branch or "").strip().lower() == (student.department or "").strip().lower()
+    year_ok = not post.year or (post.year or "").strip() == (student.year or "").strip()
+    return branch_ok and year_ok
 
 
 def _attach_certificate(parent, file, achievement_id=None, activity_id=None):

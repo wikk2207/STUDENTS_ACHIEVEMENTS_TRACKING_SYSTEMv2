@@ -16,7 +16,7 @@ AI-powered full-stack platform for students to submit achievements and activitie
 
 - **Backend:** Python 3.12+, Flask, SQLAlchemy, Flask-Login, Flask-Mail
 - **Frontend:** Bootstrap 5, Chart.js, GSAP, Web Speech API
-- **Database:** SQLite (dev), PostgreSQL (production)
+- **Database:** PostgreSQL
 - **AI/OCR:** Tesseract, OpenCV, Pillow, RapidFuzz
 - **Reports:** pandas, openpyxl, ReportLab
 
@@ -40,12 +40,14 @@ Edit `.env` with your `SECRET_KEY` and mail settings (required for OTP email).
 ### Database
 
 ```bash
-set FLASK_APP=app.py
-flask db init
-flask db migrate -m "Initial"
-flask db upgrade
-python app.py seed
+docker compose up -d postgres
+python scripts/migrate_sqlite_to_postgresql.py instance/saams.db saams.db
 ```
+
+The migration command imports the historical database first, merges the current
+SQLite database by user email, remaps foreign keys, and preserves password hashes,
+roles, OTP records, achievements, certificates, messages, and audit history. It
+only writes to an empty PostgreSQL database.
 
 ### Run locally
 
@@ -57,12 +59,7 @@ python app.py
 
 Open http://127.0.0.1:5000
 
-## Seed Accounts
-
-| Role    | Email               | Password     |
-|---------|---------------------|--------------|
-| Student | student@example.com | Password123  |
-| Mentor  | mentor@example.com  | Password123  |
+Local PostgreSQL database name: `eduvo_saams`
 
 ## Environment Variables
 

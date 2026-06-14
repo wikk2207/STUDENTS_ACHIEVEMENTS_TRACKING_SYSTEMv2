@@ -1,14 +1,24 @@
 {% extends "base.html" %}
 {% set hide_sidebar = true %}
-{% block title %}{% if verify_mode == 'login' %}Login OTP{% else %}Verify Email{% endif %}{% endblock %}
+{% block title %}
+  {% if verify_mode == 'mentor' %}Mentor OTP{% elif verify_mode == 'login' %}Login OTP{% else %}Verify Email{% endif %}
+{% endblock %}
 {% block content %}
 <div class="auth-card glass-panel neu-card">
   {% include 'components/voice_form_toggle.html' %}
   <h2 class="text-center mb-2">
-    {% if verify_mode == 'login' %}Login Verification{% else %}Verify Your Email{% endif %}
+    {% if verify_mode == 'mentor' %}
+    Mentor OTP Verification
+    {% elif verify_mode == 'login' %}
+    Student Login Verification
+    {% else %}
+    Verify Your Email
+    {% endif %}
   </h2>
   <p class="text-center text-muted">
-    {% if verify_mode == 'login' %}
+    {% if verify_mode == 'mentor' %}
+    Enter the mentor security code sent to <strong>{{ email }}</strong>
+    {% elif verify_mode == 'login' %}
     Enter the login code sent to <strong>{{ email }}</strong>
     {% else %}
     Enter the registration code sent to <strong>{{ email }}</strong>
@@ -47,7 +57,13 @@
     <button type="submit" class="btn btn-link">Resend code</button>
   </form>
   <p class="text-center small mt-2">
-    <a href="{{ url_for('auth.login') if verify_mode == 'login' else url_for('auth.register') }}">Back</a>
+    {% if verify_mode == 'mentor' %}
+    <a href="{{ url_for('auth.mentor_login') }}">Back to mentor login</a>
+    {% elif verify_mode == 'login' %}
+    <a href="{{ url_for('auth.login') }}">Back to student login</a>
+    {% else %}
+    <a href="{{ url_for('auth.register') }}">Back to registration</a>
+    {% endif %}
   </p>
 </div>
 {% endblock %}

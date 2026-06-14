@@ -15,16 +15,38 @@
     z-index: 1;
   }
 </style>
-<section class="hero-section">
+<section class="hero-section landing-hero">
+  <div class="welcome-video-wrap" aria-hidden="true">
+    <video class="welcome-bg-video" autoplay muted loop playsinline preload="auto" poster="">
+      <source src="{{ url_for('static', filename='videos/welcome-bg.mp4') }}" type="video/mp4">
+    </video>
+    <div class="welcome-video-tint"></div>
+    <div class="welcome-light-reflections"></div>
+  </div>
+  <div class="magic-cursor-layer" aria-hidden="true"></div>
+  <div class="magic-garden" aria-hidden="true">
+    <span class="magic-leaf leaf-a"></span>
+    <span class="magic-leaf leaf-b"></span>
+    <span class="magic-flower flower-a"></span>
+    <span class="magic-flower flower-b"></span>
+    <span class="magic-flower flower-c"></span>
+  </div>
   <div class="container">
     <div class="row align-items-center min-vh-100 py-5">
-      <div class="col-lg-6">
-        <span class="badge glass-badge mb-3 orbitron-text">AI-Powered • Voice Enabled</span>
-        <h1 class="hero-title orbitron-text">Student Achievement &amp; Activity Management System</h1>
-        <p class="hero-subtitle">Submit achievements, verify certificates with OCR, and track your academic journey — hands-free with voice commands.</p>
+      <div class="col-lg-6 landing-copy">
+        <span class="badge glass-badge mb-3 orbitron-text landing-kicker">AI-Powered • Voice Enabled</span>
+        <h1 class="hero-title orbitron-text landing-title">Student Achievement &amp; Activity Management System</h1>
+        <p class="hero-subtitle landing-subtitle">Submit achievements, verify certificates with OCR, and track your academic journey — hands-free with voice commands.</p>
         <div class="hero-actions d-flex flex-wrap gap-3 mt-4">
-          <a href="{{ url_for('auth.login') }}" class="btn btn-primary-neu btn-lg" data-voice-target="login">Login</a>
-          <a href="{{ url_for('auth.register') }}" class="btn btn-secondary-neu btn-lg" data-voice-target="register">Register</a>
+          <a href="{{ url_for('auth.login') }}" class="btn btn-primary-neu btn-lg" data-voice-target="login">
+            <i class="bi bi-mortarboard"></i> Student Login
+          </a>
+          <a href="{{ url_for('auth.mentor_login') }}" class="btn btn-secondary-neu btn-lg" data-voice-target="mentor-login">
+            <i class="bi bi-person-workspace"></i> Mentor Login
+          </a>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-secondary-neu btn-lg" data-voice-target="register">
+            <i class="bi bi-person-plus"></i> Register
+          </a>
         </div>
         <div class="voice-commands-landing glass-panel mt-4 p-3" data-border-glow data-border-glow-radius="22" data-border-glow-glow-radius="28">
           <p class="mb-2 fw-semibold"><i class="bi bi-mic-fill"></i> Try voice commands</p>
@@ -37,8 +59,53 @@
           <p class="voice-hint mt-2 mb-0 small text-muted">Use the bottom <strong>Voice ON</strong> toggle, then say &quot;Login&quot; or &quot;Register&quot;</p>
         </div>
       </div>
-      <div class="col-lg-6 text-center">
-        <img src="https://illustrations.popsy.co/amber/remote-work.svg" alt="Student achievements illustration" class="hero-illustration img-fluid" width="480">
+      <div class="col-lg-6">
+        <div class="hero-preview landing-cockpit glass-panel neu-card" aria-label="SAAMS animated dashboard preview">
+          <div class="cockpit-grid" aria-hidden="true"></div>
+          <div class="cockpit-topbar">
+            <span></span><span></span><span></span>
+            <strong>Live Student Flow</strong>
+          </div>
+          <div class="cockpit-stage">
+            <div class="cockpit-card cockpit-card-main">
+              <div class="card-icon"><i class="bi bi-award"></i></div>
+              <div>
+                <strong>National Hackathon</strong>
+                <small>Achievement submitted</small>
+              </div>
+              <span class="status-pill">Under Review</span>
+            </div>
+            <div class="scan-card">
+              <div class="scan-frame">
+                <i class="bi bi-file-earmark-check"></i>
+                <span class="scan-line"></span>
+              </div>
+              <div>
+                <strong>OCR Match</strong>
+                <small>Certificate verified</small>
+              </div>
+            </div>
+            <div class="voice-card">
+              <i class="bi bi-mic-fill"></i>
+              <div class="voice-bars" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+              <strong>"Send OTP"</strong>
+            </div>
+            <div class="timeline-card">
+              <span class="timeline-dot done"></span>
+              <span class="timeline-line"></span>
+              <span class="timeline-dot active"></span>
+              <span class="timeline-line"></span>
+              <span class="timeline-dot"></span>
+              <div class="timeline-labels">
+                <small>Login</small>
+                <small>Upload</small>
+                <small>Approve</small>
+              </div>
+            </div>
+          </div>
+          <div class="cockpit-floating float-a"><i class="bi bi-shield-check"></i> 94% authentic</div>
+          <div class="cockpit-floating float-b"><i class="bi bi-chat-dots"></i> Mentor notified</div>
+        </div>
       </div>
     </div>
   </div>
@@ -82,12 +149,17 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/landing-voice-nav.js') }}"></script>
+<script src="{{ url_for('static', filename='js/landing-magic.js') }}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     if (typeof gsap !== 'undefined') {
-      gsap.from('.hero-title', { opacity: 0, y: 40, duration: 1, ease: 'power3.out', delay: 0.1 });
-      gsap.from('.hero-subtitle', { opacity: 0, y: 30, duration: 1, delay: 0.2 });
-      gsap.from('.hero-actions', { opacity: 0, y: 20, duration: 0.8, delay: 0.4 });
+      gsap.from('.landing-kicker', { opacity: 0, y: 18, duration: 0.7, ease: 'power3.out' });
+      gsap.from('.landing-title', { opacity: 0, y: 40, duration: 1, ease: 'power3.out', delay: 0.1 });
+      gsap.from('.landing-subtitle', { opacity: 0, y: 30, duration: 1, delay: 0.2 });
+      gsap.from('.hero-actions, .voice-commands-landing', { opacity: 0, y: 20, duration: 0.8, stagger: 0.12, delay: 0.35 });
+      gsap.from('.landing-cockpit', { opacity: 0, scale: 0.96, duration: 0.9, ease: 'power3.out', delay: 0.25 });
+      gsap.from('.cockpit-card-main, .scan-card, .voice-card, .timeline-card', { opacity: 0, y: 24, duration: 0.7, stagger: 0.12, delay: 0.55 });
+      gsap.to('.cockpit-floating', { y: -12, duration: 2.4, repeat: -1, yoyo: true, stagger: 0.35, ease: 'sine.inOut' });
       gsap.from('.feature-card, .border-glow-card.feature-card', { opacity: 0, y: 30, stagger: 0.15, duration: 0.7, delay: 0.5 });
     }
     /* Welcome + guided flow handled by voice-guide.js */

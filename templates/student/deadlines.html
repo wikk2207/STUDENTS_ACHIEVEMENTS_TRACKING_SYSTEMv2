@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Deadlines & Events{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h1>Deadlines & Events</h1>
+    <p class="text-muted mb-0">Mentor announcements, submission deadlines, and upcoming participation opportunities.</p>
+  </div>
+  <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
+</div>
+
+<div class="classroom-feed classroom-feed-wide">
+  {% for post in posts %}
+  {% set is_read = post.id in read_post_ids %}
+  <article class="classroom-card {% if is_read %}classroom-read{% endif %}">
+    <div class="classroom-card-top">
+      <span class="classroom-type classroom-type-{{ post.post_type }}">
+        <i class="bi {{ 'bi-hourglass-split' if post.is_deadline else 'bi-stars' }}"></i>
+        {{ 'Deadline' if post.is_deadline else 'Upcoming Event' }}
+      </span>
+      <span class="classroom-time">{{ post.due_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+    </div>
+    <div class="d-flex justify-content-between gap-3 flex-wrap">
+      <div>
+        <h4>{{ post.title }}</h4>
+        {% if post.description %}<p>{{ post.description }}</p>{% endif %}
+      </div>
+      <span class="status-badge {{ 'status-Approved' if is_read else 'status-Submitted' }}">{{ 'Read' if is_read else 'Unread' }}</span>
+    </div>
+    <div class="classroom-meta">
+      <span><i class="bi bi-diagram-3"></i> {{ post.branch or 'All branches' }}</span>
+      <span><i class="bi bi-mortarboard"></i> {{ post.year ~ ' year' if post.year else 'All years' }}</span>
+      <span><i class="bi bi-person"></i> {{ post.mentor.full_name }}</span>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      {% if post.action_url %}
+      <a href="{{ post.action_url }}" class="btn btn-primary-neu btn-sm">{{ post.action_label or 'Open' }}</a>
+      {% endif %}
+      {% if not is_read %}
+      <form method="post" action="{{ url_for('student.deadline_mark_read', post_id=post.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-neu btn-sm">Mark as read</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}
+  <div class="glass-panel neu-card p-4">
+    <h5>No deadlines or events yet</h5>
+    <p class="text-muted mb-0">When mentors publish submission deadlines or events, they will appear here.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeSwitcher');
+  const saved = localStorage.getItem('saams-theme');
+  html.dataset.theme = saved || 'light';
+  btn?.addEventListener('click', function() {
+    const next = html.dataset.theme === 'bw' ? 'light' : 'bw';
+    html.dataset.theme = next;
+    localStorage.setItem('saams-theme', next);
+  });
+});
+</script>
+{% endblock %}

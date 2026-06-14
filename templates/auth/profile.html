@@ -78,8 +78,35 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="glass-panel neu-card card-3d p-4">
       <h5 class="mb-3">Update your information</h5>
       <form method="post" enctype="multipart/form-data">{{ form.hidden_tag() }}
-        {% for field in [form.full_name, form.mobile, form.department, form.year, form.roll_number, form.profile_photo] %}
-        <div class="mb-3">{{ field.label(class="form-label") }}{{ field(class="form-control") }}</div>
+        {% if current_user.is_mentor %}
+          {% set profile_fields = [
+            form.profile_photo,
+            form.full_name,
+            form.mentor_designation,
+            form.mentor_organization,
+            form.mentor_experience_years,
+            form.mentor_skills,
+            form.mentor_bio
+          ] %}
+        {% else %}
+          {% set profile_fields = [
+            form.full_name,
+            form.mobile,
+            form.department,
+            form.year,
+            form.roll_number,
+            form.profile_photo
+          ] %}
+        {% endif %}
+        {% for field in profile_fields %}
+        <div class="mb-3">
+          {{ field.label(class="form-label") }}
+          {% if field.type == 'TextAreaField' %}
+            {{ field(class="form-control", rows="4") }}
+          {% else %}
+            {{ field(class="form-control") }}
+          {% endif %}
+        </div>
         {% endfor %}
         {{ form.submit(class="btn btn-primary-neu") }}
       </form>

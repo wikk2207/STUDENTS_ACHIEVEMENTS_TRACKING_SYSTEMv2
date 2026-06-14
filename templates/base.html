@@ -17,12 +17,21 @@
   {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}" data-authenticated="{{ 'true' if current_user.is_authenticated else 'false' }}" data-celebrate="{{ session.pop('celebrate', '') }}">
+  <div class="site-video-bg" aria-hidden="true">
+    <video autoplay muted loop playsinline preload="auto">
+      <source src="{{ url_for('static', filename='videos/welcome-bg.mp4') }}" type="video/mp4">
+    </video>
+    <div class="site-video-overlay"></div>
+  </div>
   <div class="glass-bg" aria-hidden="true">
     <div class="glass-blob glass-blob1"></div>
     <div class="glass-blob glass-blob2"></div>
     <div class="glass-blob glass-blob3"></div>
   </div>
   <div id="particles" class="particles-bg" aria-hidden="true"></div>
+  <div id="saamsLoader" class="saams-loader" aria-hidden="true">
+    <div class="loader-orbit"></div>
+  </div>
 
   {% if current_user.is_authenticated and not hide_sidebar %}
   <aside class="sidebar glass-panel" id="sidebar" aria-label="Main navigation">
@@ -41,6 +50,9 @@
             <li class="{% if request.endpoint in ['student.activities_list', 'student.activity_add', 'student.activity_edit'] %}active{% endif %}">
               <a href="{{ url_for('student.activities_list') }}"><i class="bi bi-calendar-event"></i><span class="gooey-label">Activities</span></a>
               </li>
+            <li class="{% if request.endpoint == 'student.deadlines' %}active{% endif %}">
+              <a href="{{ url_for('student.deadlines') }}"><i class="bi bi-alarm"></i><span class="gooey-label">Deadlines</span></a>
+            </li>
             <li class="{% if request.endpoint in ['student.reports', 'student.export_excel_route', 'student.portfolio_pdf'] %}active{% endif %}">
               <a href="{{ url_for('student.reports') }}"><i class="bi bi-file-earmark-bar-graph"></i><span class="gooey-label">Reports</span></a>
             </li>
@@ -57,6 +69,9 @@
             <li class="{% if request.endpoint in ['mentor.submissions', 'mentor.review_submission'] %}active{% endif %}">
               <a href="{{ url_for('mentor.submissions') }}"><i class="bi bi-inbox"></i><span class="gooey-label">Submissions</span></a>
               </li>
+            <li class="{% if request.endpoint == 'mentor.deadlines' %}active{% endif %}">
+              <a href="{{ url_for('mentor.deadlines') }}"><i class="bi bi-calendar2-plus"></i><span class="gooey-label">Deadlines</span></a>
+            </li>
             <li class="{% if request.endpoint == 'mentor.analytics' %}active{% endif %}">
               <a href="{{ url_for('mentor.analytics') }}"><i class="bi bi-graph-up"></i><span class="gooey-label">Analytics</span></a>
             </li>

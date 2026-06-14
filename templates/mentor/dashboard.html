@@ -1,22 +1,117 @@
 {% extends "base.html" %}
+{% from "components/profile_card.html" import profile_card %}
 {% block title %}Mentor Dashboard{% endblock %}
 {% block content %}
-<div class="page-header">
-  <h1>Mentor Dashboard</h1>
-  <p class="text-muted">Review submissions and export student data</p>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h1>Mentor Dashboard</h1>
+    <p class="text-muted mb-0">Review submissions and export student data</p>
+  </div>
+  {% include 'components/theme_switcher.html' %}
 </div>
-<div class="kpi-grid">
+
+
+<div class="profile-card-layout mentor-dashboard-card mb-4">
+
+    {{ profile_card(
+        current_user,
+        status=stats.pending ~ ' pending reviews',
+        contact_text='Edit Profile',
+        contact_href=url_for('auth.profile'),
+        compact=true
+    ) }}
+
+    <div class="surface-card p-4">
+
+        <h5><i class="bi bi-person-vcard"></i> Mentor Details</h5>
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                <small class="text-muted">Email</small><br>
+                <strong>{{ current_user.email }}</strong>
+            </div>
+
+            <div class="col-md-6">
+                <small class="text-muted">Mobile</small><br>
+                <strong>{{ current_user.mobile or '—' }}</strong>
+            </div>
+
+            <div class="col-md-6">
+                <small class="text-muted">Designation</small><br>
+                <strong>{{ current_user.mentor_designation or 'Mentor' }}</strong>
+            </div>
+
+            <div class="col-md-6">
+                <small class="text-muted">Organization</small><br>
+                <strong>{{ current_user.mentor_organization or 'SAAMS' }}</strong>
+            </div>
+
+            <div class="col-md-6">
+                <small class="text-muted">Students Managed</small><br>
+                <strong>{{ stats.students }}</strong>
+            </div>
+
+            <div class="col-md-6">
+                <small class="text-muted">Certificates Reviewed</small><br>
+                <strong>{{ stats.certs_uploaded }}</strong>
+            </div>
+
+            <div class="col-md-6">
+                <small class="text-muted">Pending Reviews</small><br>
+                <strong>{{ stats.pending }}</strong>
+            </div>
+
+            <div class="col-md-6">
+                <small class="text-muted">Member Since</small><br>
+                <strong>
+                    {{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else '—' }}
+                </strong>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+<div class="kpi-grid mentor-dashboard-card">
   <div class="kpi-card surface-card"><h3>{{ stats.students }}</h3><p>Students</p></div>
   <div class="kpi-card surface-card"><h3>{{ stats.certs_uploaded }}</h3><p>Certificates</p></div>
   <div class="kpi-card surface-card"><h3>{{ stats.pending }}</h3><p>Pending</p></div>
   <div class="kpi-card surface-card"><h3>{{ stats.suspected_fake }}</h3><p>Suspected Fake</p></div>
+  <div class="kpi-card surface-card"><h3>{{ stats.active_deadlines }}</h3><p>Deadlines</p></div>
+  <div class="kpi-card surface-card"><h3>{{ stats.upcoming_events }}</h3><p>Events</p></div>
 </div>
 <div class="d-flex gap-2 mb-4 flex-wrap">
   <a href="{{ url_for('mentor.export_full_dataset') }}" class="btn btn-primary">Full Dataset (Excel)</a>
   <a href="{{ url_for('mentor.submissions') }}" class="btn btn-outline-secondary">Submissions</a>
+  <a href="{{ url_for('mentor.deadlines') }}" class="btn btn-outline-secondary">Deadlines & Events</a>
   <a href="{{ url_for('mentor.reports') }}" class="btn btn-outline-secondary">Reports</a>
 </div>
-<div class="row g-4">
+<div class="surface-card p-4 mentor-dashboard-card mb-4">
+  <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+    <h5 class="mb-0"><i class="bi bi-calendar2-week"></i> Active Deadlines & Events</h5>
+    <a href="{{ url_for('mentor.deadlines') }}" class="btn btn-neu btn-sm">Manage</a>
+  </div>
+  <div class="classroom-feed classroom-feed-compact">
+    {% for post in classroom_posts %}
+    <article class="classroom-card">
+      <div class="classroom-card-top">
+        <span class="classroom-type classroom-type-{{ post.post_type }}">{{ 'Deadline' if post.is_deadline else 'Event' }}</span>
+        <span class="classroom-time">{{ post.due_at.strftime('%d %b, %I:%M %p') }}</span>
+      </div>
+      <strong>{{ post.title }}</strong>
+      <div class="classroom-meta">
+        <span>{{ post.branch or 'All branches' }}</span>
+        <span>{{ post.year ~ ' year' if post.year else 'All years' }}</span>
+      </div>
+    </article>
+    {% else %}
+    <p class="text-muted mb-0">No active deadlines/events. Publish one for students.</p>
+    {% endfor %}
+  </div>
+</div>
+<div class="row g-4 mentor-dashboard-card">
   <div class="col-lg-7">
     <div class="surface-card p-4">
       <h5>Pending submissions</h5>

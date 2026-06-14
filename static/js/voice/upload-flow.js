@@ -15,7 +15,8 @@ window.UploadFlow = (function () {
   document.addEventListener('saams:file-selected', (e) => {
     if (!voicePick || !canGuide()) return;
     voicePick = false;
-    VoiceEngine.speak('Certificate uploaded successfully.');
+    const name = e.detail?.name ? ` ${e.detail.name}` : '';
+    VoiceEngine.speak(`Certificate${name} selected. Please review the preview, then submit when you are ready.`);
   });
 
   async function handle(text) {

@@ -120,7 +120,7 @@ class SARAAssistant {
         
         // Otherwise form input
         console.log('📋 FORM INPUT DETECTED');
-        this.fillForm(text);
+        this.fillForm(converted);
     }
     
     convertText(text) {
@@ -145,8 +145,7 @@ class SARAAssistant {
     
     isActionCommand(text) {
         const actions = [
-            'login', 'log in', 'sign in', 'signin', 'sign me in', 'log me in',
-            'register', 'add achievement', 'add activity',
+            'login', 'register', 'add achievement', 'add activity',
             'open profile', 'profile', 'portfolio', 'reports', 'notifications',
             'mentor', 'chat', 'dashboard', 'home', 'back', 'go back',
             'dark mode', 'light mode', 'executive', 'submit', 'save',
@@ -160,7 +159,7 @@ class SARAAssistant {
         console.log('⚡ EXECUTING:', text);
         
         // LOGIN
-        if (this.isLoginCommand(text)) {
+        if (text.includes('login')) {
             console.log('🔓 Going to login');
             this.speak('Opening login page');
             setTimeout(() => { window.location.href = '/auth/login'; }, 500);
@@ -286,10 +285,6 @@ class SARAAssistant {
             return;
         }
     }
-
-    isLoginCommand(text) {
-        return /\b(login|log in|logon|log on|sign in|signin|sign me in|log me in|let me in|open login|open sign in|go to login|go to sign in)\b/i.test(text);
-    }
     
     navigate(url, name) {
         this.speak(`Opening ${name}`);
@@ -298,14 +293,13 @@ class SARAAssistant {
     
     fillForm(text) {
         const active = document.activeElement;
-        const value = this.valueForField(active, text);
         
         // If input is focused, use it
         if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-            active.value = value;
+            active.value = text;
             active.dispatchEvent(new Event('input', { bubbles: true }));
             active.dispatchEvent(new Event('change', { bubbles: true }));
-            this.speak(`Set to: ${value}`);
+            this.speak(`Set to: ${text}`);
             return;
         }
         
@@ -316,9 +310,8 @@ class SARAAssistant {
         
         for (let input of inputs) {
             if (!input.value || input.value.trim() === '') {
-                const fieldValue = this.valueForField(input, text);
                 input.focus();
-                input.value = fieldValue;
+                input.value = text;
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
                 
@@ -329,22 +322,12 @@ class SARAAssistant {
         }
         
         if (inputs.length > 0) {
-            const fieldValue = this.valueForField(inputs[0], text);
             inputs[0].focus();
-            inputs[0].value = fieldValue;
+            inputs[0].value = text;
             inputs[0].dispatchEvent(new Event('input', { bubbles: true }));
             inputs[0].dispatchEvent(new Event('change', { bubbles: true }));
             this.speak(`Updated field`);
         }
-    }
-
-    valueForField(field, text) {
-        const raw = String(text || '').trim().replace(/\s+/g, ' ');
-        if (!field) return raw;
-        const fieldName = `${field.type || ''} ${field.name || ''} ${field.id || ''} ${field.placeholder || ''}`;
-        if (/email|e-mail/i.test(fieldName)) return this.convertText(raw).toLowerCase().replace(/\s+/g, '');
-        if (/otp|code|pin|mobile|phone|number/i.test(fieldName)) return this.convertText(raw).replace(/\D/g, '');
-        return raw;
     }
     
     speak(text) {

@@ -1,0 +1,40 @@
+{% macro certificate_preview(cert, allow_delete=False, compact=False) %}
+  {% if cert %}
+    {% set ext = cert.file_name.rsplit(".", 1)[-1]|lower if cert.file_name and "." in cert.file_name else "" %}
+    {% set view_url = url_for("student.view_certificate", cert_id=cert.id) %}
+    {% set download_url = url_for("student.download_certificate", cert_id=cert.id) %}
+    <div class="certificate-preview-card{% if compact %} certificate-preview-card-sm{% endif %}">
+      <div class="certificate-preview-head">
+        <div class="min-w-0">
+          <strong class="certificate-file-name">{{ cert.file_name or "Uploaded document" }}</strong>
+          <small class="text-muted d-block">{{ cert.verification_status or "Pending" }}{% if cert.confidence_score is not none %} - {{ cert.confidence_score }} confidence{% endif %}</small>
+        </div>
+        <div class="certificate-preview-actions">
+          <a class="btn btn-neu btn-sm" href="{{ view_url }}" target="_blank" rel="noopener"><i class="bi bi-eye"></i> View</a>
+          <a class="btn btn-neu btn-sm" href="{{ download_url }}"><i class="bi bi-download"></i> Download</a>
+          {% if allow_delete %}
+          <form method="post" action="{{ url_for('student.delete_certificate', cert_id=cert.id) }}" class="d-inline" onsubmit="return confirm('Delete this uploaded document?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-neu btn-sm text-danger" type="submit"><i class="bi bi-trash"></i> Delete</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% if ext in ["jpg", "jpeg", "png", "gif", "webp"] %}
+        <img class="certificate-preview-media" src="{{ view_url }}" alt="Certificate preview">
+      {% elif ext == "pdf" %}
+        <iframe class="certificate-preview-frame" src="{{ view_url }}" title="Certificate preview"></iframe>
+      {% elif ext == "txt" %}
+        <iframe class="certificate-preview-frame certificate-preview-frame-short" src="{{ view_url }}" title="Certificate preview"></iframe>
+      {% else %}
+        <div class="certificate-preview-fallback">
+          <i class="bi bi-file-earmark-text"></i>
+          <div>
+            <strong>Preview is not available for this file type.</strong>
+            <small class="text-muted d-block">Use View or Download to open the uploaded file.</small>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endmacro %}

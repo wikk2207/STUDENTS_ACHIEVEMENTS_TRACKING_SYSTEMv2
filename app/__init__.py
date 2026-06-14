@@ -69,6 +69,7 @@ def create_app(config_name=None):
     login_manager.login_message_category = "info"
 
     from app.routes import auth, main, mentor, student, api, voice, cert_dashboard, sara_api
+    from app.services.sara_voice import VoiceSession  # noqa: F401
 
     app.register_blueprint(main.bp)
     app.register_blueprint(auth.bp, url_prefix="/auth")
@@ -110,23 +111,55 @@ def create_app(config_name=None):
 
 
 def _ensure_schema_columns(app):
-    """Add new columns on existing SQLite DBs without full migration."""
+    """Add compatible columns to databases created before newer models."""
     from sqlalchemy import inspect, text
 
     with app.app_context():
         insp = inspect(db.engine)
-        if "certificates" not in insp.get_table_names():
-            return
-        cols = {c["name"] for c in insp.get_columns("certificates")}
         alters = []
-        if "file_hash" not in cols:
-            alters.append("ALTER TABLE certificates ADD COLUMN file_hash VARCHAR(64)")
-        if "fraud_risk" not in cols:
-            alters.append("ALTER TABLE certificates ADD COLUMN fraud_risk VARCHAR(20)")
-        if "fraud_notes" not in cols:
-            alters.append("ALTER TABLE certificates ADD COLUMN fraud_notes TEXT")
+        tables = set(insp.get_table_names())
+
+        if "certificates" in tables:
+            certificate_cols = {
+                column["name"] for column in insp.get_columns("certificates")
+            }
+            if "file_hash" not in certificate_cols:
+                alters.append("ALTER TABLE certificates ADD COLUMN file_hash VARCHAR(64)")
+            if "fraud_risk" not in certificate_cols:
+                alters.append("ALTER TABLE certificates ADD COLUMN fraud_risk VARCHAR(20)")
+            if "fraud_notes" not in certificate_cols:
+                alters.append("ALTER TABLE certificates ADD COLUMN fraud_notes TEXT")
+
+        submission_identity_columns = {
+            "branch": "VARCHAR(80)",
+            "year": "VARCHAR(20)",
+            "roll_number": "VARCHAR(40)",
+        }
+        for table_name in ("achievements", "activities"):
+            if table_name in tables:
+                cols = {column["name"] for column in insp.get_columns(table_name)}
+                for name, column_type in submission_identity_columns.items():
+                    if name not in cols:
+                        alters.append(
+                            f"ALTER TABLE {table_name} ADD COLUMN {name} {column_type}"
+                        )
+
+        if "users" in tables:
+            user_cols = {column["name"] for column in insp.get_columns("users")}
+            mentor_columns = {
+                "mentor_designation": "VARCHAR(120)",
+                "mentor_organization": "VARCHAR(120)",
+                "mentor_experience_years": "VARCHAR(40)",
+                "mentor_skills": "TEXT",
+                "mentor_bio": "TEXT",
+            }
+            for name, column_type in mentor_columns.items():
+                if name not in user_cols:
+                    alters.append(
+                        f"ALTER TABLE users ADD COLUMN {name} {column_type}"
+                    )
+
         if alters:
             with db.engine.begin() as conn:
                 for sql in alters:
                     conn.execute(text(sql))
-                    

@@ -84,7 +84,7 @@ window.VoiceSequencer = (function () {
   }
 
   function cleanName(text) {
-    return cleanPrefix(text, ['my name is', 'name is', 'i am', "i'm"]);
+    return titleCaseName(removeSpellingEcho(cleanPrefix(text, ['my name is', 'name is', 'i am', "i'm"])));
   }
 
   function cleanRoll(text) {
@@ -92,11 +92,101 @@ window.VoiceSequencer = (function () {
   }
 
   function cleanBranch(text) {
-    return cleanPrefix(text, ['branch is', 'department is', 'in']);
+    return titleCaseName(cleanPrefix(text, ['branch is', 'department is', 'in']));
   }
 
   function exactText(text) {
     return String(text || '').trim().replace(/\s+/g, ' ');
+  }
+
+  function titleCaseName(text) {
+    return exactText(text)
+      .toLowerCase()
+      .replace(/\b[a-z]/g, (m) => m.toUpperCase());
+  }
+
+  function removeSpellingEcho(text) {
+    const tokens = exactText(text).split(/\s+/).filter(Boolean);
+    const kept = [];
+    let i = 0;
+    while (i < tokens.length) {
+      const run = [];
+      let j = i;
+      while (j < tokens.length && /^[a-z]$/i.test(tokens[j])) {
+        run.push(tokens[j].toLowerCase());
+        j += 1;
+      }
+      if (run.length >= 2 && tokens[j]) {
+        const spelled = run.join('');
+        const next = tokens[j].toLowerCase().replace(/[^a-z]/g, '');
+        if (next === spelled) {
+          kept.push(tokens[j]);
+          i = j + 1;
+          continue;
+        }
+      }
+      kept.push(tokens[i]);
+      i += 1;
+    }
+    return kept.join(' ');
+  }
+
+  function normalizeSpelled(text) {
+    const words = {
+      zero: '0',
+      oh: '0',
+      o: '0',
+      one: '1',
+      two: '2',
+      to: '2',
+      three: '3',
+      four: '4',
+      for: '4',
+      five: '5',
+      six: '6',
+      seven: '7',
+      eight: '8',
+      ate: '8',
+      nine: '9',
+      at: '@',
+      dot: '.',
+      period: '.',
+      underscore: '_',
+      dash: '-',
+      hyphen: '-',
+      minus: '-',
+      plus: '+',
+    };
+    return String(text || '')
+      .toLowerCase()
+      .replace(/\bat\s+the\s+rate\b/g, ' @ ')
+      .replace(/\bat\s+rate\b/g, ' @ ')
+      .replace(/\bg\s*mail\b/g, 'gmail')
+      .split(/\s+/)
+      .map((token) => {
+        const clean = token.replace(/[^\w@.+-]/g, '');
+        return words[clean] ?? clean;
+      })
+      .join('');
+  }
+
+  function parseEmail(text) {
+    const cleaned = String(text || '')
+      .replace(/\bat\s+the\s+rate\s+or\s+at\b/gi, 'at the rate')
+      .replace(/\bor\s+at\s+(gmail|yahoo|outlook|hotmail)\b/gi, 'at $1');
+    return D.extractEmail(cleaned) || D.normalizeEmail(cleaned) || D.normalizeEmail(normalizeSpelled(cleaned));
+  }
+
+  function parsePassword(text) {
+    return normalizeSpelled(
+      cleanPrefix(text, ['password is', 'my password is', 'confirm password is', 'confirmation password is'])
+    ).replace(/\s+/g, '');
+  }
+
+  function parseRole(text) {
+    const t = norm(text);
+    if (/mentor|faculty|teacher/.test(t)) return 'mentor';
+    return 'student';
   }
 
   function speakEmail(email) {
@@ -206,7 +296,7 @@ window.VoiceSequencer = (function () {
   }
 
   async function homeFlow() {
-    await VE().speak('Welcome to SAAMS. Would you like to login or register?');
+    await VE().speak('Welcome to Student Achievement and Activity Management System. Would you like to login or register?');
     while (true) {
       try {
         const transcript = await hear({
@@ -234,13 +324,14 @@ window.VoiceSequencer = (function () {
   }
 
   async function loginEmailFlow() {
+    await VE().speak('Student login selected.');
     const email = await askConfirmed({
-      say: 'Please tell me your email.',
-      parse: (t) => D.extractEmail(t) || D.normalizeEmail(t),
+      say: 'Please tell me your email letter by letter. For example, say w o r k w i t h w i k at the rate gmail dot com.',
+      parse: parseEmail,
       valid: (v) => v.includes('@') && v.includes('.'),
-      retry: 'I could not understand the email. Please say it again slowly.',
+      retry: 'I could not understand the email. Please say it again slowly, letter by letter.',
       confirm: (v) => `I heard your email as ${speakEmail(v)}. Is this correct?`,
-      listen: { timeoutMs: 26000 },
+      listen: { timeoutMs: 32000 },
     });
     fillAndFocus('email', email);
     sessionStorage.setItem(SK, 'login_otp');
@@ -265,75 +356,90 @@ window.VoiceSequencer = (function () {
   }
 
   async function registerFlow() {
+    await VE().speak('Registration selected. I will ask each field one by one and confirm it before moving ahead.');
+    let password = '';
     const steps = [
       {
-        say: 'Please tell your full name.',
+        say: 'Full Name. Please tell your full name. You can spell it and then say the full word.',
         field: 'full_name',
         parse: cleanName,
         valid: (v) => v.length >= 2,
-        retry: 'Please tell your full name.',
-        confirm: (v) => `Your name is ${v}. Is it right?`,
+        retry: 'Please tell your full name again.',
+        confirm: (v) => `Your name is ${v}. Is this correct?`,
       },
       {
-        say: 'Please tell your roll number.',
-        field: 'roll_number',
-        parse: cleanRoll,
-        valid: (v) => v.length >= 1,
-        retry: 'Please tell your roll number.',
-        confirm: (v) => `Your roll number is ${v}. Is it right?`,
-        after: () => D.fill('role', 'student'),
+        say: 'Email. Please tell your email letter by letter. For example, b i n a r y a i zero zero one zero at gmail dot com.',
+        field: 'email',
+        parse: parseEmail,
+        valid: (v) => v.includes('@') && v.includes('.'),
+        retry: 'I could not understand the email. Please say it again slowly, letter by letter.',
+        confirm: (v) => `I heard your email as ${speakEmail(v)}. Is this correct?`,
+        listen: { timeoutMs: 32000 },
       },
       {
-        say: 'Please tell your branch or department.',
-        field: 'department',
-        parse: cleanBranch,
-        valid: (v) => v.length >= 2,
-        retry: 'Please tell your branch.',
-        confirm: (v) => `Your branch is ${v}. Is it right?`,
-      },
-      {
-        say: 'Please tell your mobile number.',
+        say: 'Mobile. Please tell your ten digit mobile number.',
         field: 'mobile',
         parse: (t) => D.normalizePhone(t),
         valid: (v) => v.replace(/\D/g, '').length >= 10,
         retry: 'Please tell your ten digit mobile number.',
-        confirm: (v) => `Your mobile number is ${v.split('').join(' ')}. Is it right?`,
+        confirm: (v) => `Your mobile number is ${v.split('').join(' ')}. Is this correct?`,
       },
       {
-        say: 'Please tell your year. Say first, second, third, or fourth year.',
+        say: 'Role. Say student or mentor. Say student for student registration.',
+        field: 'role',
+        parse: parseRole,
+        valid: (v) => v === 'student' || v === 'mentor',
+        retry: 'Please say student or mentor.',
+        confirm: (v) => `Your role is ${v}. Is this correct?`,
+      },
+      {
+        say: 'Department. Please tell your branch or department.',
+        field: 'department',
+        parse: cleanBranch,
+        valid: (v) => v.length >= 2,
+        retry: 'Please tell your branch or department again.',
+        confirm: (v) => `Your department is ${v}. Is this correct?`,
+      },
+      {
+        say: 'Year. Please tell your year. Say first, second, third, or fourth year.',
         field: 'year',
         parse: parseYear,
         valid: (v) => !!v,
         retry: 'Please say first, second, third, or fourth year.',
-        confirm: (v) => `Your year is ${v}. Is it right?`,
+        confirm: (v) => `Your year is ${v}. Is this correct?`,
       },
       {
-        say: 'Please tell your email.',
-        field: 'email',
-        parse: (t) => D.extractEmail(t) || D.normalizeEmail(t),
-        valid: (v) => v.includes('@') && v.includes('.'),
-        retry: 'I could not understand the email. Please say it again slowly.',
-        confirm: (v) => `I heard your email as ${speakEmail(v)}. Is this correct?`,
-        listen: { timeoutMs: 26000 },
+        say: 'Roll Number. Please tell your roll number.',
+        field: 'roll_number',
+        parse: cleanRoll,
+        valid: (v) => v.length >= 1,
+        retry: 'Please tell your roll number again.',
+        confirm: (v) => `Your roll number is ${v}. Is this correct?`,
       },
       {
-        say: 'Please tell your password. It must be at least eight characters.',
+        say: 'Password. Please tell your password. It must be at least eight characters.',
         field: 'password',
-        parse: (t) => t.replace(/\s+/g, ''),
+        parse: parsePassword,
         valid: (v) => v.length >= 8,
         retry: 'Password must be at least eight characters. Please say it again.',
-        confirm: () => 'I have entered the password. Is it right?',
+        confirm: () => 'I have entered the password. Is this correct?',
+        after: (v) => { password = v; },
+      },
+      {
+        say: 'Confirm Password. Please repeat the same password.',
+        field: 'confirm_password',
+        parse: parsePassword,
+        valid: (v) => v.length >= 8 && v === password,
+        retry: 'Confirm password must match the first password. Please say the same password again.',
+        confirm: () => 'I have entered the confirm password. Is this correct?',
       },
     ];
 
-    let password = '';
     for (const step of steps) {
       const value = await askConfirmed(step);
       fillAndFocus(step.field, value);
-      if (step.field === 'password') password = value;
-      step.after?.();
+      step.after?.(value);
     }
-    D.fill('confirm_password', password);
     await VE().speak('Registration form is ready. Should I submit it?');
     const answer = await hear({ allowInterim: true, validate: (c) => isYes(c) || isNo(c) });
     if (isYes(answer)) {
