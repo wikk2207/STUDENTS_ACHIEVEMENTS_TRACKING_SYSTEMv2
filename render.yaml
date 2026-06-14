@@ -17,10 +17,6 @@ services:
         value: binaryai0010@gmail.com
       - key: MENTOR_WHITELIST_EMAILS
         value: binaryai0010@gmail.com
-      - key: MENTOR_NAME
-        value: SAAMS Mentor
-      - key: MENTOR_PASSWORD
-        sync: false
       - key: MAIL_SERVER
         value: smtp.gmail.com
       - key: MAIL_PORT
