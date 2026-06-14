@@ -7,5 +7,9 @@ saams.db-*
 *.log
 static/uploads/*
 !static/uploads/.gitkeep
+!static/uploads/certificates/
+!static/uploads/certificates/*
+!static/uploads/profiles/
+!static/uploads/profiles/*
 instance/
 .migrations/
