@@ -1,4 +1,6 @@
 import os
+import json
+import traceback
 
 from dotenv import load_dotenv
 
@@ -11,6 +13,7 @@ from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
+from werkzeug.exceptions import HTTPException
 
 try:
     # When running as a package (recommended)
@@ -39,6 +42,7 @@ def create_app(config_name=None):
 
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    os.makedirs(app.instance_path, exist_ok=True)
     os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "profiles"), exist_ok=True)
     os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "certificates"), exist_ok=True)
 
@@ -61,6 +65,7 @@ def create_app(config_name=None):
     mail.init_app(app)
     csrf.init_app(app)
     CORS(app, supports_credentials=True)
+    app.config["LAST_ERROR"] = None
 
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "info"
@@ -103,6 +108,24 @@ def create_app(config_name=None):
     with app.app_context():
         db.create_all()
         _ensure_schema_columns(app)
+
+    @app.errorhandler(Exception)
+    def capture_unhandled_error(error):
+        if isinstance(error, HTTPException):
+            return error
+        app.logger.exception("Unhandled application error")
+        error_record = {
+            "type": type(error).__name__,
+            "message": str(error),
+            "traceback": traceback.format_exc(limit=12),
+        }
+        app.config["LAST_ERROR"] = error_record
+        try:
+            with open(os.path.join(app.instance_path, "last_error.json"), "w", encoding="utf-8") as fh:
+                json.dump(error_record, fh)
+        except Exception:
+            app.logger.exception("Failed to write last error diagnostic")
+        return "Internal Server Error", 500
 
     return app
 

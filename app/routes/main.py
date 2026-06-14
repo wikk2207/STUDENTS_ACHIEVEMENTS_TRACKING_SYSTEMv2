@@ -1,4 +1,7 @@
-from flask import Blueprint, jsonify, render_template, redirect, url_for
+import json
+import os
+
+from flask import Blueprint, current_app, jsonify, render_template, redirect, url_for
 from flask_login import current_user
 from sqlalchemy import text
 
@@ -78,3 +81,15 @@ def _mail_ready():
         and current_app.config.get("MAIL_USERNAME")
         and current_app.config.get("MAIL_PASSWORD")
     )
+
+
+@bp.route("/healthz/last-error")
+def healthz_last_error():
+    error_file = os.path.join(current_app.instance_path, "last_error.json")
+    if os.path.exists(error_file):
+        try:
+            with open(error_file, "r", encoding="utf-8") as fh:
+                return jsonify(json.load(fh))
+        except Exception as exc:
+            return jsonify({"status": "could not read last error", "message": str(exc)}), 500
+    return jsonify(current_app.config.get("LAST_ERROR") or {"status": "no error captured yet"})

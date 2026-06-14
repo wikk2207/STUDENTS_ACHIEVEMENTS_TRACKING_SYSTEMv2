@@ -32,7 +32,7 @@ class Config:
         "MAIL_DEFAULT_SENDER", "SAAMS <noreply@saams.local>"
     )
     MAIL_DEBUG = os.environ.get("MAIL_DEBUG", "false").lower() == "true"
-    MAIL_TIMEOUT = int(os.environ.get("MAIL_TIMEOUT", 20))
+    MAIL_TIMEOUT = int(os.environ.get("MAIL_TIMEOUT", 6))
 
     UPLOAD_FOLDER = os.path.join(basedir, "static", "uploads")
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024))

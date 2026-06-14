@@ -109,7 +109,9 @@ def send_otp_email(user, code, purpose="verification"):
         )
         try:
             mail.send(msg)
-        except Exception:
+        except Exception as smtp_error:
+            if _network_unreachable(smtp_error):
+                raise
             _send_direct_smtp(user.email.strip(), subject, body, sender)
         session.pop("dev_otp_code", None)
         current_app.logger.info("OTP email sent to %s", user.email)
@@ -135,7 +137,9 @@ def send_notification_email(user, subject, template, **kwargs):
         msg = Message(subject=subject, recipients=[user.email], html=body, sender=sender)
         try:
             mail.send(msg)
-        except Exception:
+        except Exception as smtp_error:
+            if _network_unreachable(smtp_error):
+                raise
             _send_direct_smtp(user.email, subject, body, sender)
         return True
     except Exception as e:
@@ -170,3 +174,13 @@ def _send_direct_smtp(recipient, subject, html_body, sender):
             smtp.ehlo()
         smtp.login(username, password)
         smtp.sendmail(sender or username, [recipient], msg.as_string())
+
+
+def _network_unreachable(exc):
+    text = str(exc).lower()
+    return (
+        "network is unreachable" in text
+        or "errno 101" in text
+        or "errno 111" in text
+        or "connection refused" in text
+    )
