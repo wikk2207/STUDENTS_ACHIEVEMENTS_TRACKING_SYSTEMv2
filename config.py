@@ -1,5 +1,6 @@
 import os
 from datetime import timedelta
+from sqlalchemy.pool import NullPool
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -19,7 +20,11 @@ class Config:
         )
     )
 
-    SQLALCHEMY_ENGINE_OPTIONS = {}
+    SQLALCHEMY_ENGINE_OPTIONS = (
+        {"poolclass": NullPool, "pool_pre_ping": True}
+        if os.environ.get("RENDER") or os.environ.get("DB_POOL_MODE") == "null"
+        else {"pool_pre_ping": True, "pool_recycle": 300}
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "localhost")
@@ -33,6 +38,9 @@ class Config:
     )
     MAIL_DEBUG = os.environ.get("MAIL_DEBUG", "false").lower() == "true"
     MAIL_TIMEOUT = int(os.environ.get("MAIL_TIMEOUT", 6))
+    FORCE_SMTP = os.environ.get("FORCE_SMTP", "false").lower() == "true"
+    RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+    RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "SAAMS <onboarding@resend.dev>")
 
     UPLOAD_FOLDER = os.path.join(basedir, "static", "uploads")
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024))

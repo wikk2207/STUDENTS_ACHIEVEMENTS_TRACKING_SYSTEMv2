@@ -33,7 +33,7 @@ from app.models import (
 )
 from app.services.otp_service import is_mail_configured
 from app.services.ocr_service import process_certificate_upload
-from app.services.otp_service import send_notification_email
+from app.services.otp_service import send_notification_email, send_plain_email
 from app.services.report_service import export_excel, student_portfolio_pdf
 from app.utils.achievement_classifier import classify_achievement
 from app.utils.helpers import (
@@ -875,15 +875,4 @@ def _mark_message_notifications_read():
 
 
 def _send_chat_email(recipient, subject, body):
-    if not recipient:
-        return False
-    if not is_mail_configured():
-        current_app.logger.info("DEV chat email to %s: %s", recipient, subject)
-        return True
-    try:
-        msg = MailMessage(subject=subject, recipients=[recipient], body=body)
-        mail.send(msg)
-        return True
-    except Exception as exc:
-        current_app.logger.error("Chat email failed: %s", exc)
-        return False
+    return send_plain_email(recipient, subject, body)

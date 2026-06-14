@@ -9,7 +9,7 @@ from app import db, mail
 from app.forms import ClassroomPostForm, MentorReviewForm
 from app.models import Achievement, Activity, Certificate, ClassroomPost, Message, Notification, User
 from app.services.otp_service import is_mail_configured
-from app.services.otp_service import send_notification_email
+from app.services.otp_service import send_notification_email, send_plain_email
 from app.services.report_service import (
     department_report_pdf,
     export_comprehensive_excel,
@@ -656,17 +656,6 @@ def _unread_notifications_for_student(student, current_user_id):
 
 
 def _send_chat_email(recipient, subject, body):
-    if not recipient:
-        return False
-    if not is_mail_configured():
-        current_app.logger.info("DEV chat email to %s: %s", recipient, subject)
-        return True
-    try:
-        msg = MailMessage(subject=subject, recipients=[recipient], body=body)
-        mail.send(msg)
-        return True
-    except Exception as exc:
-        current_app.logger.error("Chat email failed: %s", exc)
-        return False
+    return send_plain_email(recipient, subject, body)
 
 

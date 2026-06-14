@@ -3,7 +3,7 @@ services:
     name: saams
     env: python
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: gunicorn wsgi:app --workers 2 --threads 4 --timeout 120
+    startCommand: gunicorn wsgi:app --workers 1 --threads 2 --timeout 120
     envVars:
       - key: FLASK_ENV
         value: production
@@ -28,6 +28,16 @@ services:
       - key: MAIL_PASSWORD
         sync: false
       - key: MAIL_DEFAULT_SENDER
+        sync: false
+      - key: MAIL_TIMEOUT
+        value: "6"
+      - key: FORCE_SMTP
+        value: "false"
+      - key: DB_POOL_MODE
+        value: "null"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
         sync: false
       - key: DATABASE_URL
         fromDatabase:
