@@ -362,11 +362,16 @@ def messages(student_id=None):
             flash("Please select a student conversation.", "danger")
             return redirect(url_for("mentor.messages"))
         body = (request.form.get("body") or "").strip()
-        if not body:
-            flash("Please write your reply.", "danger")
+        attachment_file = request.files.get("attachment")
+        attachment_rel, _ = save_upload(attachment_file, "message_attachments")
+        if attachment_file and attachment_file.filename and not attachment_rel:
+            flash("This file type is not supported for chat sharing.", "danger")
             return redirect(url_for("mentor.messages", student_id=selected_student.id))
-
-        attachment_rel, _ = save_upload(request.files.get("attachment"), "message_attachments")
+        if not body and not attachment_rel:
+            flash("Please write a reply or attach a note/material.", "danger")
+            return redirect(url_for("mentor.messages", student_id=selected_student.id))
+        if not body:
+            body = "Shared a note or study material."
         msg = Message(
             sender_id=current_user_id,
             receiver_id=selected_student.id,
@@ -640,7 +645,21 @@ def _message_meta(message):
     attachment = meta.get("attachment")
     if attachment:
         meta["attachment_name"] = attachment.rsplit("/", 1)[-1]
+        meta["attachment_type"] = _attachment_type(attachment)
     return meta
+
+
+def _attachment_type(path):
+    ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+    if ext in {"png", "jpg", "jpeg", "gif", "webp"}:
+        return "image"
+    if ext in {"mp4", "webm", "mov", "mkv", "avi"}:
+        return "video"
+    if ext in {"mp3", "wav", "m4a"}:
+        return "audio"
+    if ext == "pdf":
+        return "pdf"
+    return "file"
 
 
 def _conversation_meta(messages, current_user_id):

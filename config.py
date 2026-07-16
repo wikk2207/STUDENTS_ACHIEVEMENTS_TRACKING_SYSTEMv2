@@ -43,10 +43,11 @@ class Config:
     RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "Skill Connect <onboarding@resend.dev>")
 
     UPLOAD_FOLDER = os.path.join(basedir, "static", "uploads")
-    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024))
+    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 100 * 1024 * 1024))
     ALLOWED_EXTENSIONS = {
         "pdf", "png", "jpg", "jpeg", "gif", "webp",
-        "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "zip"
+        "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "zip",
+        "mp4", "webm", "mov", "mkv", "avi", "mp3", "wav", "m4a"
     }
 
     PERMANENT_SESSION_LIFETIME = timedelta(

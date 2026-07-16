@@ -141,11 +141,16 @@ def messages():
             problem_type = "Other"
         if priority not in PRIORITIES:
             priority = "Normal"
-        if not body:
-            flash("Please write your message.", "danger")
+        attachment_file = request.files.get("attachment")
+        attachment_rel, _ = save_upload(attachment_file, "message_attachments")
+        if attachment_file and attachment_file.filename and not attachment_rel:
+            flash("This file type is not supported for chat sharing.", "danger")
             return redirect(url_for("student.messages", mentor_id=selected_mentor.id))
-
-        attachment_rel, _ = save_upload(request.files.get("attachment"), "message_attachments")
+        if not body and not attachment_rel:
+            flash("Please write a message or attach a note/material.", "danger")
+            return redirect(url_for("student.messages", mentor_id=selected_mentor.id))
+        if not body:
+            body = "Shared a note or study material."
         display_subject = subject or problem_type
         message_body = _build_chat_body(
             body,
@@ -182,7 +187,7 @@ def messages():
                 f"Open: {url_for('mentor.messages', _external=True)}\n\n{body}"
             ),
         )
-        flash("Message sent to mentor.", "success")
+        flash("Message sent.", "success")
         return redirect(url_for("student.messages", mentor_id=selected_mentor.id))
 
     messages = []
@@ -903,7 +908,21 @@ def _message_meta(message):
     attachment = meta.get("attachment")
     if attachment:
         meta["attachment_name"] = attachment.rsplit("/", 1)[-1]
+        meta["attachment_type"] = _attachment_type(attachment)
     return meta
+
+
+def _attachment_type(path):
+    ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+    if ext in {"png", "jpg", "jpeg", "gif", "webp"}:
+        return "image"
+    if ext in {"mp4", "webm", "mov", "mkv", "avi"}:
+        return "video"
+    if ext in {"mp3", "wav", "m4a"}:
+        return "audio"
+    if ext == "pdf":
+        return "pdf"
+    return "file"
 
 
 def _conversation_status(messages):

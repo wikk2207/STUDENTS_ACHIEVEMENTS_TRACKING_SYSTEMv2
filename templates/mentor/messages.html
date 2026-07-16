@@ -116,6 +116,26 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .chat-preview {
+    display: block;
+    max-width: min(100%, 440px);
+    margin-top: .65rem;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .chat-preview img,
+  .chat-preview video,
+  video.chat-preview {
+    display: block;
+    width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+    background: rgba(17, 24, 39, .08);
+    border-radius: 14px;
+  }
+  .chat-preview audio {
+    width: min(100%, 360px);
+  }
   .student-thread.active { border-color: var(--primary) !important; }
 </style>
 <div class="row g-4">
@@ -225,7 +245,17 @@
             {% endif %}
             <div class="chat-text">{{ meta.body }}</div>
             {% if meta.attachment %}
-            <a class="chat-attachment" href="{{ url_for('static', filename=meta.attachment) }}" target="_blank" rel="noopener">
+            {% set attachment_url = url_for('static', filename=meta.attachment) %}
+            {% if meta.attachment_type == 'image' %}
+            <a class="chat-preview" href="{{ attachment_url }}" target="_blank" rel="noopener">
+              <img src="{{ attachment_url }}" alt="{{ meta.attachment_name }}">
+            </a>
+            {% elif meta.attachment_type == 'video' %}
+            <video class="chat-preview" controls preload="metadata" src="{{ attachment_url }}"></video>
+            {% elif meta.attachment_type == 'audio' %}
+            <div class="chat-preview"><audio controls preload="metadata" src="{{ attachment_url }}"></audio></div>
+            {% endif %}
+            <a class="chat-attachment" href="{{ attachment_url }}" target="_blank" rel="noopener">
               <i class="bi bi-paperclip"></i><span>{{ meta.attachment_name }}</span>
             </a>
             {% endif %}
@@ -243,6 +273,7 @@
           {% set meta = row.meta %}
           <a class="btn btn-neu btn-sm" href="{{ url_for('static', filename=meta.attachment) }}" target="_blank" rel="noopener">
             <i class="bi bi-paperclip"></i> {{ meta.attachment_name }}
+            <span class="badge bg-dark">{{ meta.attachment_type|default('file') }}</span>
             <span class="text-muted small">from {{ m.sender.full_name }}</span>
           </a>
           {% else %}
@@ -255,11 +286,12 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="body" class="form-label">Reply</label>
         <div class="d-grid gap-2">
-          <textarea name="body" id="body" class="form-control" rows="3" required placeholder="Write your reply"></textarea>
+          <textarea name="body" id="body" class="form-control" rows="3" placeholder="Write your reply or attach notes/materials"></textarea>
           <div class="d-flex gap-2 align-items-end">
             <div class="flex-grow-1">
               <label class="form-label small mb-1">Study Material / Attachment</label>
-              <input type="file" name="attachment" class="form-control" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.png,.jpg,.jpeg,.webp">
+              <input type="file" name="attachment" class="form-control" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.png,.jpg,.jpeg,.gif,.webp,.mp4,.webm,.mov,.mkv,.avi,.mp3,.wav,.m4a">
+              <small class="text-muted">PDF, images, MP4/video, audio, Word, PPT, Excel, ZIP, and text files are supported.</small>
             </div>
             <button class="btn btn-primary-neu" type="submit"><i class="bi bi-reply"></i> Reply</button>
           </div>
