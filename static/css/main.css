@@ -242,7 +242,7 @@ body {
 .sidebar-brand {
   font-size: 1.4rem;
   font-weight: 700;
-  color: var(--primary);
+  color: #111827;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1947,6 +1947,11 @@ body.landing-page .voice-commands-landing {
 [data-theme="red-cream-black"] .feature-icon,
 [data-theme="red-cream-black"] .nav-link:hover {
   color: #8f1f1f !important;
+}
+
+[data-theme="red-cream-black"] .sidebar-brand,
+[data-theme="bw"] .sidebar-brand {
+  color: #000 !important;
 }
 
 [data-theme="red-cream-black"] .table-glass th,

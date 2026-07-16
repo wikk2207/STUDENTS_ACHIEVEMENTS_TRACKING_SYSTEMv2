@@ -58,6 +58,15 @@ window.VoiceSequencer = (function () {
     );
   }
 
+  function matchMentorLogin(c) {
+    const t = norm(c);
+    const k = compact(c);
+    return (
+      /\b(mentor login|faculty login|teacher login|open mentor login|go to mentor login|mentor sign in|faculty sign in)\b/i.test(t) ||
+      /(mentorlogin|facultylogin|teacherlogin|openmentorlogin|gotomentorlogin|mentorsignin|facultysignin)/i.test(k)
+    );
+  }
+
   function matchRegister(c) {
     const t = norm(c);
     const k = compact(c);
@@ -303,9 +312,13 @@ window.VoiceSequencer = (function () {
           allowInterim: true,
           attempts: 5,
           timeoutMs: 22000,
-          validate: (c) => matchLogin(c) || matchRegister(c),
+          validate: (c) => matchMentorLogin(c) || matchLogin(c) || matchRegister(c),
         });
         const c = norm(transcript);
+        if (matchMentorLogin(c)) {
+          speakThenGo('Opening mentor login.', window.SAAMS?.urls?.mentorLogin || '/auth/mentor-login');
+          return;
+        }
         if (matchLogin(c)) {
           sessionStorage.setItem(SK, 'login_email');
           speakThenGo('Opening login.', window.SAAMS?.urls?.login || '/auth/login');
@@ -611,18 +624,23 @@ window.VoiceSequencer = (function () {
     const k = compact(command);
     const urls = window.SAAMS?.urls || {};
     if (!window.SAAMS?.isAuthenticated) {
+      if (matchMentorLogin(c)) return urls.mentorLogin || '/auth/mentor-login';
       if (matchLogin(c)) return urls.login || '/auth/login';
       if (matchRegister(c)) return urls.register || '/auth/register';
     }
+    if (/mentor.*login|faculty.*login|teacher.*login/.test(c) || /mentorlogin|facultylogin|teacherlogin/.test(k)) return urls.mentorLogin;
     if (/add.*achievement|new.*achievement|achievement form/.test(c) || /addachievement|newachievement|achievementform/.test(k)) return urls.achievementAdd;
     if (/add.*activity|new.*activity|activity form/.test(c) || /addactivity|newactivity|activityform/.test(k)) return urls.activityAdd;
-    if (/achievement/.test(c)) return urls.achievements;
+    if (/achievement|certificate/.test(c)) return urls.achievements;
     if (/activit/.test(c)) return urls.activities;
-    if (/report/.test(c)) return urls.reports;
-    if (/notification/.test(c) || /notify|notice/.test(k)) return urls.notificationsPage || '/student/notifications';
-    if (/analytics/.test(c)) return urls.analytics || urls.studentDashboard;
-    if (/mentor chat|message|chat/.test(c) || /mentorchat|openchat|messages/.test(k)) return urls.messages;
-    if (/portfolio/.test(c)) return urls.portfolio;
+    if (/report|excel|pdf/.test(c)) return urls.reports;
+    if (/notification/.test(c) || /notify|notice/.test(k)) return urls.notificationsPage || urls.studentDashboard || urls.mentorDashboard;
+    if (/analytics/.test(c)) return urls.analytics || urls.mentorDashboard || urls.studentDashboard;
+    if (/deadline|upcoming|event|classroom/.test(c) || /deadline|upcomingevent|classroom/.test(k)) return urls.deadlines;
+    if (/submission|review|approval|pending/.test(c) || /submissions|reviewsubmission|pendingreview/.test(k)) return urls.submissions;
+    if (/mentor chat|student chat|friend chat|message|chat|notes|study material|material/.test(c) || /mentorchat|studentchat|friendchat|openchat|messages|sendnotes|notes|studymaterial|material/.test(k)) return urls.messages;
+    if (/portfolio|resume/.test(c)) return urls.portfolio;
+    if (/profile|skill|skills/.test(c) || /profile|skills|addskill/.test(k)) return urls.profile;
     if (/dashboard|home/.test(c) || /opendashboard|gotodashboard|gohome|openhome/.test(k)) return urls.studentDashboard || urls.mentorDashboard;
     if (/logout|log out/.test(c) || /logout|signout/.test(k)) return urls.logout;
     return '';
@@ -654,11 +672,11 @@ window.VoiceSequencer = (function () {
       const transcript = await hear({
         allowInterim: true,
         attempts: 1,
-        timeoutMs: 30000,
+        timeoutMs: 16000,
         validate: (c) => matchLogin(c) || matchRegister(c) || !!destinationFor(c) || /help|what can i say/i.test(c),
       });
       if (/help|what can i say/i.test(transcript)) {
-        await VE().speak('Say login, register, add achievement, add activity, dashboard, reports, portfolio, mentor chat, notifications, or logout.');
+        await VE().speak('Say login, mentor login, register, dashboard, add achievement, add activity, deadlines, submissions, chat, send notes, reports, portfolio, profile, notifications, or logout.');
         return true;
       }
       const url = destinationFor(transcript);
@@ -680,7 +698,7 @@ window.VoiceSequencer = (function () {
     if (!sessionStorage.getItem('saams_welcomed_back')) {
       sessionStorage.setItem('saams_welcomed_back', '1');
       await VE().speak(
-        `Welcome ${window.SAAMS?.userName || 'back'} to Skill Connect. Say add achievement, add activity, reports, notifications, analytics, mentor chat, portfolio, or stop guide.`
+        `Welcome ${window.SAAMS?.userName || 'back'} to Skill Connect. Say chat, send notes, deadlines, submissions, add achievement, add activity, reports, notifications, analytics, portfolio, profile, or stop guide.`
       );
     } else {
       await VE().speak('Voice assistant is ready. What would you like to open?');

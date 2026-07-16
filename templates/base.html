@@ -209,6 +209,7 @@
         leaderboard: "{{ url_for('mentor.leaderboard') if current_user.is_authenticated and current_user.is_mentor else (url_for('api.leaderboard') if current_user.is_authenticated else '') }}",
         reports: "{{ url_for('student.reports') if current_user.is_authenticated and current_user.is_student else (url_for('mentor.reports') if current_user.is_authenticated else '') }}",
         messages: "{{ url_for('student.messages') if current_user.is_authenticated and current_user.is_student else (url_for('mentor.messages') if current_user.is_authenticated and current_user.is_mentor else '') }}",
+        deadlines: "{{ url_for('student.deadlines') if current_user.is_authenticated and current_user.is_student else (url_for('mentor.deadlines') if current_user.is_authenticated and current_user.is_mentor else '') }}",
         notificationsPage: "{{ url_for('student.notifications') if current_user.is_authenticated and current_user.is_student else '' }}",
         logout: "{{ url_for('auth.logout') }}",
         toggleDark: "{{ url_for('api.toggle_dark') }}",
