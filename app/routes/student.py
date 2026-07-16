@@ -47,6 +47,7 @@ from app.utils.helpers import (
 bp = Blueprint("student", __name__)
 
 PROBLEM_TYPES = [
+    "Study Material",
     "Achievement",
     "Activity",
     "Certificate Upload",
@@ -198,6 +199,7 @@ def messages():
         selected_mentor=selected_mentor,
         selected_mentor_id=selected_mentor_id,
         messages=_message_rows(messages),
+        shared_materials=_shared_material_rows(messages),
         problem_types=PROBLEM_TYPES,
         priorities=PRIORITIES,
         conversation_status=status,
@@ -830,6 +832,15 @@ def _build_chat_body(body, problem_type="Other", subject="Message", priority="No
 
 def _message_rows(messages):
     return [{"message": m, "meta": _message_meta(m)} for m in messages]
+
+
+def _shared_material_rows(messages):
+    rows = []
+    for message in messages:
+        meta = _message_meta(message)
+        if meta.get("attachment"):
+            rows.append({"message": message, "meta": meta})
+    return rows
 
 
 def _message_meta(message):

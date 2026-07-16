@@ -21,6 +21,7 @@ from app.utils.helpers import calculate_achievement_points, log_action, save_upl
 bp = Blueprint("mentor", __name__)
 
 PROBLEM_TYPES = [
+    "Study Material",
     "Achievement",
     "Activity",
     "Certificate Upload",
@@ -406,6 +407,7 @@ def messages(student_id=None):
         conversation_rows=conversation_rows,
         selected_student=selected_student,
         messages=_message_rows(chat_messages),
+        shared_materials=_shared_material_rows(chat_messages),
         problem_types=PROBLEM_TYPES,
         priorities=PRIORITIES,
         statuses=CONVERSATION_STATUSES,
@@ -589,6 +591,15 @@ def _build_chat_body(body, attachment=None):
 
 def _message_rows(messages):
     return [{"message": m, "meta": _message_meta(m)} for m in messages]
+
+
+def _shared_material_rows(messages):
+    rows = []
+    for message in messages:
+        meta = _message_meta(message)
+        if meta.get("attachment"):
+            rows.append({"message": message, "meta": meta})
+    return rows
 
 
 def _message_meta(message):
