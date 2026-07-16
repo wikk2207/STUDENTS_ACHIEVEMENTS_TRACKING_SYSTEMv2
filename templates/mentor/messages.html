@@ -114,6 +114,38 @@
         </div>
       </div>
       <div class="chat-history mb-3">
+        {% if selected_student %}
+        <div class="glass-panel p-3 mb-3">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            {% if selected_student.profile_photo %}
+            <img src="{{ url_for('static', filename=selected_student.profile_photo) }}" alt="" class="avatar-sm">
+            {% else %}
+            <span class="avatar-sm">{{ selected_student.full_name[0] }}</span>
+            {% endif %}
+            <div>
+              <strong>{{ selected_student.full_name }}</strong>
+              <div class="small text-muted">{{ selected_student.role|title }}{% if selected_student.department %} · {{ selected_student.department }}{% endif %}{% if selected_student.year %} · Year {{ selected_student.year }}{% endif %}</div>
+            </div>
+          </div>
+          {% if selected_user_stats and selected_user_stats.bio %}
+          <p class="small mb-2">{{ selected_user_stats.bio }}</p>
+          {% endif %}
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            {% if selected_user_stats and selected_user_stats.skills %}
+              {% for skill in selected_user_stats.skills %}
+              <span class="badge bg-primary">{{ skill }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted small">No skills added yet.</span>
+            {% endif %}
+          </div>
+          {% if selected_user_stats %}
+          <div class="small text-muted">
+            {{ selected_user_stats.points }} pts · {{ selected_user_stats.approved_count }} approved · {{ selected_user_stats.activity_count }} activities
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
         {% for row in messages %}
         {% set m = row.message %}
         {% set meta = row.meta %}

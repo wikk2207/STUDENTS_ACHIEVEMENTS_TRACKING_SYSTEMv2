@@ -4,7 +4,7 @@
 <div class="page-header d-flex justify-content-between align-items-center">
   <div>
     <h1>Mentor Chat</h1>
-    <p class="text-muted mb-0">Chat with your mentor and share study materials in one place.</p>
+    <p class="text-muted mb-0">Connect with mentors and students, view skills, and share study materials.</p>
   </div>
   <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
 </div>
@@ -73,13 +73,45 @@ document.addEventListener('DOMContentLoaded', function() {
       <form method="post" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="mb-3">
-          <label for="mentor_id" class="form-label">Mentor</label>
+          <label for="mentor_id" class="form-label">Connect With</label>
           <select name="mentor_id" id="mentor_id" class="form-select" onchange="window.location='{{ url_for('student.messages') }}?mentor_id=' + this.value">
             {% for mentor in mentors %}
-            <option value="{{ mentor.id }}" {% if selected_mentor and mentor.id == selected_mentor.id %}selected{% endif %}>{{ mentor.full_name }}</option>
+            <option value="{{ mentor.id }}" {% if selected_mentor and mentor.id == selected_mentor.id %}selected{% endif %}>{{ mentor.full_name }} · {{ mentor.role|title }}</option>
             {% endfor %}
           </select>
         </div>
+        {% if selected_mentor %}
+        <div class="glass-panel p-3 mb-3">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            {% if selected_mentor.profile_photo %}
+            <img src="{{ url_for('static', filename=selected_mentor.profile_photo) }}" alt="" class="avatar-sm">
+            {% else %}
+            <span class="avatar-sm">{{ selected_mentor.full_name[0] }}</span>
+            {% endif %}
+            <div>
+              <strong>{{ selected_mentor.full_name }}</strong>
+              <div class="small text-muted">{{ selected_mentor.role|title }}{% if selected_mentor.department %} · {{ selected_mentor.department }}{% endif %}</div>
+            </div>
+          </div>
+          {% if selected_user_stats and selected_user_stats.bio %}
+          <p class="small mb-2">{{ selected_user_stats.bio }}</p>
+          {% endif %}
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            {% if selected_user_stats and selected_user_stats.skills %}
+              {% for skill in selected_user_stats.skills %}
+              <span class="badge bg-primary">{{ skill }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted small">No skills added yet.</span>
+            {% endif %}
+          </div>
+          {% if selected_mentor.is_student and selected_user_stats %}
+          <div class="small text-muted">
+            {{ selected_user_stats.points }} pts · {{ selected_user_stats.approved_count }} approved · {{ selected_user_stats.activity_count }} activities
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
         <div class="mb-3">
           <label for="problem_type" class="form-label">Message Type</label>
           <select name="problem_type" id="problem_type" class="form-select" required>
@@ -121,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h5 class="mb-1"><i class="bi bi-chat-dots"></i> Conversation</h5>
-          {% if selected_mentor %}<span class="text-muted small">{{ selected_mentor.full_name }}</span>{% endif %}
+          {% if selected_mentor %}<span class="text-muted small">{{ selected_mentor.full_name }} · {{ selected_mentor.role|title }}</span>{% endif %}
         </div>
         <div class="d-flex gap-2 align-items-center">
           <span class="status-badge">{{ conversation_status }}</span>

@@ -595,17 +595,16 @@ def profile():
 
         current_user.full_name = form.full_name.data
 
-        current_user.mobile = form.mobile.data
-
-        current_user.department = form.department.data
+        current_user.mentor_skills = form.mentor_skills.data
+        current_user.mentor_bio = form.mentor_bio.data
 
         if current_user.is_mentor:
             current_user.mentor_designation = form.mentor_designation.data
             current_user.mentor_organization = form.mentor_organization.data
             current_user.mentor_experience_years = form.mentor_experience_years.data
-            current_user.mentor_skills = form.mentor_skills.data
-            current_user.mentor_bio = form.mentor_bio.data
         else:
+            current_user.mobile = form.mobile.data
+            current_user.department = form.department.data
             current_user.year = form.year.data
             current_user.roll_number = form.roll_number.data
 

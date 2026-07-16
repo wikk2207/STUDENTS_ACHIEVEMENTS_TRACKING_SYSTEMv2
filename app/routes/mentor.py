@@ -309,6 +309,10 @@ def messages(student_id=None):
         .filter(Message.sender_id == current_user_id)
         .all()
     )
+    student_ids.update(
+        row[0]
+        for row in db.session.query(User.id).filter(User.role == "student").all()
+    )
     student_ids.discard(current_user_id)
 
     conversation_rows = []
@@ -408,6 +412,7 @@ def messages(student_id=None):
         selected_student=selected_student,
         messages=_message_rows(chat_messages),
         shared_materials=_shared_material_rows(chat_messages),
+        selected_user_stats=_user_profile_stats(selected_student) if selected_student else None,
         problem_types=PROBLEM_TYPES,
         priorities=PRIORITIES,
         statuses=CONVERSATION_STATUSES,
@@ -600,6 +605,24 @@ def _shared_material_rows(messages):
         if meta.get("attachment"):
             rows.append({"message": message, "meta": meta})
     return rows
+
+
+def _user_profile_stats(user):
+    if not user:
+        return None
+    achievements = Achievement.query.filter_by(student_id=user.id).all() if user.is_student else []
+    activities = Activity.query.filter_by(student_id=user.id).all() if user.is_student else []
+    approved = [a for a in achievements if a.status == "Approved"]
+    skills_text = user.mentor_skills or ""
+    skills = [s.strip() for s in skills_text.replace("\n", ",").split(",") if s.strip()]
+    return {
+        "skills": skills[:12],
+        "bio": user.mentor_bio or "",
+        "approved_count": len(approved),
+        "achievement_count": len(achievements),
+        "activity_count": len(activities),
+        "points": calculate_achievement_points(achievements),
+    }
 
 
 def _message_meta(message):

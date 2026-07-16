@@ -115,15 +115,15 @@ def notifications():
 @bp.route("/messages", methods=["GET", "POST"])
 @student_required
 def messages():
-    mentors = User.query.filter_by(role="mentor").order_by(User.full_name).all()
+    chat_users = User.query.filter(User.id != current_user.id).order_by(User.role.desc(), User.full_name).all()
     selected_mentor_id = request.values.get("mentor_id", type=int)
     search = (request.args.get("q") or "").strip()
-    if not selected_mentor_id and mentors:
-        selected_mentor_id = mentors[0].id
+    if not selected_mentor_id and chat_users:
+        selected_mentor_id = chat_users[0].id
 
     selected_mentor = None
     if selected_mentor_id:
-        selected_mentor = User.query.filter_by(id=selected_mentor_id, role="mentor").first()
+        selected_mentor = User.query.filter(User.id == selected_mentor_id, User.id != current_user.id).first()
         _mark_message_notifications_read()
 
     if request.method == "POST":
@@ -162,7 +162,7 @@ def messages():
         db.session.add(
             Notification(
                 user_id=selected_mentor.id,
-                title="New Student Message",
+                title="New Student Message" if selected_mentor.is_mentor else "New Message",
                 message=f"{current_user.full_name} sent a {priority.lower()} {problem_type.lower()} message.",
             )
         )
@@ -195,11 +195,12 @@ def messages():
         status = _conversation_status(all_messages)
     return render_template(
         "student/messages.html",
-        mentors=mentors,
+        mentors=chat_users,
         selected_mentor=selected_mentor,
         selected_mentor_id=selected_mentor_id,
         messages=_message_rows(messages),
         shared_materials=_shared_material_rows(messages),
+        selected_user_stats=_user_profile_stats(selected_mentor) if selected_mentor else None,
         problem_types=PROBLEM_TYPES,
         priorities=PRIORITIES,
         conversation_status=status,
@@ -843,6 +844,24 @@ def _shared_material_rows(messages):
     return rows
 
 
+def _user_profile_stats(user):
+    if not user:
+        return None
+    achievements = Achievement.query.filter_by(student_id=user.id).all() if user.is_student else []
+    activities = Activity.query.filter_by(student_id=user.id).all() if user.is_student else []
+    approved = [a for a in achievements if a.status == "Approved"]
+    skills_text = user.mentor_skills or ""
+    skills = [s.strip() for s in skills_text.replace("\n", ",").split(",") if s.strip()]
+    return {
+        "skills": skills[:12],
+        "bio": user.mentor_bio or "",
+        "approved_count": len(approved),
+        "achievement_count": len(achievements),
+        "activity_count": len(activities),
+        "points": calculate_achievement_points(achievements),
+    }
+
+
 def _message_meta(message):
     meta = {"body": message.body or "", "attachment": None}
     header, sep, rest = (message.body or "").partition("\n\n")
@@ -873,7 +892,7 @@ def _mark_message_notifications_read():
     q = Notification.query.filter(
         Notification.user_id == current_user.id,
         Notification.is_read.is_(False),
-        Notification.title == "Mentor Reply",
+        Notification.title.in_(["Mentor Reply", "New Message"]),
     )
     if not q.first():
         return

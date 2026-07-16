@@ -266,11 +266,11 @@ class ProfileForm(FlaskForm):
         validators=[Optional(), Length(max=40)],
     )
     mentor_skills = TextAreaField(
-        "Skills/Expertise",
+        "Skills / Knowledge",
         validators=[Optional(), Length(max=2000)],
     )
     mentor_bio = TextAreaField(
-        "Short Bio/About Me",
+        "Short Bio / About Me",
         validators=[Optional(), Length(max=3000)],
     )
     profile_photo = FileField(
