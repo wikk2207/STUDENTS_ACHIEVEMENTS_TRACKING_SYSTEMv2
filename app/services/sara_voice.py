@@ -1,6 +1,6 @@
 """
-SARA - Student Achievement Response Assistant
-Voice Assistant Service for SAAMS (Works with manual & voice commands)
+SARA - Skill Connect Response Assistant
+Voice Assistant Service for Skill Connect (Works with manual & voice commands)
 Allows blind students to complete entire workflow without keyboard/mouse
 """
 
@@ -24,7 +24,7 @@ class VoiceSession(db.Model):
 
 class SARAVoiceAssistant:
     """
-    SARA: Student Achievement Response Assistant
+    SARA: Skill Connect Response Assistant
     
     Features:
     - Voice navigation without keyboard/mouse
@@ -164,7 +164,7 @@ class SARAVoiceAssistant:
         command = command.lower().strip()
         
         responses = {
-            'who are you': "I am SARA, your Student Achievement Response Assistant. I help you manage your achievements and activities without using keyboard or mouse.",
+            'who are you': "I am SARA, your Skill Connect assistant. I help you manage your achievements and activities without using keyboard or mouse.",
             'good morning': "Good morning! I hope your day is going well. What would you like to do in SAMS today?",
             'hello': "Hello! How can I help you today?",
             'thank you': "You're welcome! If you need help with achievements, activities, reports, or mentor communication, I'm here to assist.",

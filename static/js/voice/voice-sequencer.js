@@ -296,7 +296,7 @@ window.VoiceSequencer = (function () {
   }
 
   async function homeFlow() {
-    await VE().speak('Welcome to Student Achievement and Activity Management System. Would you like to login or register?');
+    await VE().speak('Welcome to Skill Connect. Would you like to login or register?');
     while (true) {
       try {
         const transcript = await hear({
@@ -680,7 +680,7 @@ window.VoiceSequencer = (function () {
     if (!sessionStorage.getItem('saams_welcomed_back')) {
       sessionStorage.setItem('saams_welcomed_back', '1');
       await VE().speak(
-        `Welcome ${window.SAAMS?.userName || 'back'} to SAAMS. Say add achievement, add activity, reports, notifications, analytics, mentor chat, portfolio, or stop guide.`
+        `Welcome ${window.SAAMS?.userName || 'back'} to Skill Connect. Say add achievement, add activity, reports, notifications, analytics, mentor chat, portfolio, or stop guide.`
       );
     } else {
       await VE().speak('Voice assistant is ready. What would you like to open?');

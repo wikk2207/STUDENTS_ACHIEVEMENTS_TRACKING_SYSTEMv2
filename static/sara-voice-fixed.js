@@ -1,5 +1,5 @@
 /**
- * SARA - Student Achievement Response Assistant (FIXED VERSION)
+ * SARA - Skill Connect Response Assistant (FIXED VERSION)
  * Frontend Voice Handler - Improved for continuous listening
  * 
  * Key fixes:

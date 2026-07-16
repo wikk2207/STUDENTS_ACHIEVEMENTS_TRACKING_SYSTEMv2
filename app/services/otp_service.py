@@ -80,13 +80,13 @@ def send_otp_email(user, code, purpose="verification"):
     Otherwise store in session for on-screen display (development).
     Returns: (email_sent: bool, message: str)
     """
-    subject = "SAAMS Verification Code"
+    subject = "Skill Connect Verification Code"
     if purpose == "login":
-        subject = "SAAMS Login OTP"
+        subject = "Skill Connect Login OTP"
     elif purpose == "reset":
-        subject = "SAAMS Password Reset OTP"
+        subject = "Skill Connect Password Reset OTP"
     elif purpose == "mentor_login":
-        subject = "SAAMS Mentor Security OTP"
+        subject = "Skill Connect Mentor Security OTP"
 
     if not is_mail_configured():
         store_dev_otp(code)
@@ -105,12 +105,12 @@ def send_otp_email(user, code, purpose="verification"):
         )
         sender = current_app.config.get("MAIL_DEFAULT_SENDER") or current_app.config.get("MAIL_USERNAME")
         if sender and "<" not in sender and "@" in sender:
-            sender = f"SAAMS <{sender}>"
+            sender = f"Skill Connect <{sender}>"
         _send_email(
             user.email.strip(),
             subject,
             html_body=body,
-            text_body=f"Your SAAMS OTP is {code}. It is valid for 10 minutes.",
+            text_body=f"Your Skill Connect OTP is {code}. It is valid for 10 minutes.",
             sender=sender,
         )
         session.pop("dev_otp_code", None)
@@ -133,7 +133,7 @@ def send_notification_email(user, subject, template, **kwargs):
         body = render_template(template, user=user, **kwargs)
         sender = current_app.config.get("MAIL_DEFAULT_SENDER") or current_app.config.get("MAIL_USERNAME")
         if sender and "<" not in sender and "@" in sender:
-            sender = f"SAAMS <{sender}>"
+            sender = f"Skill Connect <{sender}>"
         _send_email(user.email, subject, html_body=body, sender=sender)
         return True
     except Exception as e:
@@ -172,7 +172,7 @@ def _send_email(recipient, subject, html_body=None, text_body=None, sender=None)
 
     sender = sender or current_app.config.get("MAIL_DEFAULT_SENDER") or current_app.config.get("MAIL_USERNAME")
     if sender and "<" not in sender and "@" in sender:
-        sender = f"SAAMS <{sender}>"
+        sender = f"Skill Connect <{sender}>"
     msg = Message(
         subject=subject,
         recipients=[recipient],

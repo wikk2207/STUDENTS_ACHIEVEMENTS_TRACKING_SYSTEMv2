@@ -34,13 +34,13 @@ class Config:
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = os.environ.get(
-        "MAIL_DEFAULT_SENDER", "SAAMS <noreply@saams.local>"
+        "MAIL_DEFAULT_SENDER", "Skill Connect <noreply@saams.local>"
     )
     MAIL_DEBUG = os.environ.get("MAIL_DEBUG", "false").lower() == "true"
     MAIL_TIMEOUT = int(os.environ.get("MAIL_TIMEOUT", 6))
     FORCE_SMTP = os.environ.get("FORCE_SMTP", "false").lower() == "true"
     RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
-    RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "SAAMS <onboarding@resend.dev>")
+    RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "Skill Connect <onboarding@resend.dev>")
 
     UPLOAD_FOLDER = os.path.join(basedir, "static", "uploads")
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024))

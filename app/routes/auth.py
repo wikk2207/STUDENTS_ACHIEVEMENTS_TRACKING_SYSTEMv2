@@ -202,7 +202,7 @@ def verify_otp():
 
                 user,
 
-                "Welcome to SAAMS",
+                "Welcome to Skill Connect",
 
                 "emails/welcome.html",
 
@@ -216,7 +216,7 @@ def verify_otp():
 
             session["celebrate"] = "register"
 
-            flash("Account verified! Welcome to SAAMS.", "success")
+            flash("Account verified! Welcome to Skill Connect.", "success")
 
             return redirect(url_for("main.dashboard_redirect"))
 

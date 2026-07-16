@@ -1,4 +1,4 @@
-# SAAMS — Student Achievement and Activity Management System
+# Skill Connect — Skills, Achievements, and Activity Portfolio System
 
 AI-powered full-stack platform for students to submit achievements and activities with certificate OCR verification, voice control, mentor approval workflows, analytics, and PDF/Excel reporting.
 
