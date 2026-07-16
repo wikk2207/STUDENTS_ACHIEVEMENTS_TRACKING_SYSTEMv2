@@ -49,7 +49,73 @@
     color: #000 !important;
     border: 2px solid #000 !important;
   }
-  .chat-bubble { white-space: pre-wrap; }
+  [data-theme="bw"] .chat-attachment {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+  .chat-history {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+  .chat-row {
+    display: flex;
+    justify-content: flex-start;
+  }
+  .chat-row-own {
+    justify-content: flex-end;
+  }
+  .chat-bubble {
+    width: fit-content;
+    max-width: min(78%, 720px);
+    min-width: 0;
+    padding: .85rem 1rem;
+    border-radius: 18px;
+    line-height: 1.4;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .chat-bubble-own {
+    background: #111827;
+    color: #fff;
+    box-shadow: 0 18px 38px rgba(17, 24, 39, .18);
+  }
+  .chat-bubble-other {
+    background: rgba(255, 255, 255, .86);
+    color: #111827;
+    border: 1px solid rgba(255, 255, 255, .7);
+  }
+  .chat-meta,
+  .chat-tags {
+    font-size: .78rem;
+    opacity: .72;
+    margin-bottom: .25rem;
+  }
+  .chat-text {
+    white-space: pre-wrap;
+    margin-top: .35rem;
+  }
+  .chat-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    max-width: 100%;
+    margin-top: .55rem;
+    padding: .35rem .6rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .16);
+    color: inherit;
+    text-decoration: none;
+  }
+  .chat-bubble-other .chat-attachment {
+    background: rgba(17, 24, 39, .08);
+  }
+  .chat-attachment span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .student-thread.active { border-color: var(--primary) !important; }
 </style>
 <div class="row g-4">
@@ -149,17 +215,21 @@
         {% for row in messages %}
         {% set m = row.message %}
         {% set meta = row.meta %}
-        <div class="chat-bubble mb-2 p-3 {% if m.sender_id == current_user.id %}text-end bg-primary text-white{% else %}bg-light{% endif %}" style="max-width:75%;margin-left:{% if m.sender_id == current_user.id %}auto{% else %}0{% endif %};border-radius:1rem;">
-          <div class="small {% if m.sender_id == current_user.id %}text-white-50{% else %}text-muted{% endif %}">{{ m.sender.full_name }} | {{ m.created_at.strftime('%d %b %Y %H:%M') }}</div>
-          {% if meta.problem_type or meta.priority or meta.subject %}
-          <div class="small {% if m.sender_id == current_user.id %}text-white-50{% else %}text-muted{% endif %}">
-            {{ meta.problem_type or 'Message' }}{% if meta.priority %} | {{ meta.priority }}{% endif %}{% if meta.subject %} | {{ meta.subject }}{% endif %}
+        <div class="chat-row {% if m.sender_id == current_user.id %}chat-row-own{% endif %}">
+          <div class="chat-bubble {% if m.sender_id == current_user.id %}chat-bubble-own{% else %}chat-bubble-other{% endif %}">
+            <div class="chat-meta">{{ m.sender.full_name }} | {{ m.created_at.strftime('%d %b %Y %H:%M') }}</div>
+            {% if meta.problem_type or meta.priority or meta.subject %}
+            <div class="chat-tags">
+              {{ meta.problem_type or 'Message' }}{% if meta.priority %} | {{ meta.priority }}{% endif %}{% if meta.subject %} | {{ meta.subject }}{% endif %}
+            </div>
+            {% endif %}
+            <div class="chat-text">{{ meta.body }}</div>
+            {% if meta.attachment %}
+            <a class="chat-attachment" href="{{ url_for('static', filename=meta.attachment) }}" target="_blank" rel="noopener">
+              <i class="bi bi-paperclip"></i><span>{{ meta.attachment_name }}</span>
+            </a>
+            {% endif %}
           </div>
-          {% endif %}
-          <div>{{ meta.body }}</div>
-          {% if meta.attachment %}
-          <a class="{% if m.sender_id == current_user.id %}text-white{% endif %}" href="{{ url_for('static', filename=meta.attachment) }}" target="_blank" rel="noopener"><i class="bi bi-paperclip"></i> {{ meta.attachment_name }}</a>
-          {% endif %}
         </div>
         {% else %}
         <div class="text-center text-muted py-4">Select a student conversation.</div>
