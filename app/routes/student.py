@@ -116,6 +116,8 @@ def notifications():
 @student_required
 def messages():
     chat_users = User.query.filter(User.id != current_user.id).order_by(User.role.desc(), User.full_name).all()
+    recent_chat_times = _recent_chat_times(current_user.id)
+    chat_users.sort(key=lambda user: _chat_user_sort_key(user, recent_chat_times))
     selected_mentor_id = request.values.get("mentor_id", type=int)
     search = (request.args.get("q") or "").strip()
     if not selected_mentor_id and chat_users:
@@ -829,6 +831,30 @@ def _build_chat_body(body, problem_type="Other", subject="Message", priority="No
     if attachment:
         lines.append(f"Attachment: {attachment}")
     return "\n".join(lines) + f"\n\n{body}"
+
+
+def _recent_chat_times(user_id):
+    recent = {}
+    messages = (
+        Message.query.filter((Message.sender_id == user_id) | (Message.receiver_id == user_id))
+        .order_by(Message.created_at.desc())
+        .all()
+    )
+    for message in messages:
+        partner_id = message.receiver_id if message.sender_id == user_id else message.sender_id
+        recent.setdefault(partner_id, message.created_at)
+    return recent
+
+
+def _chat_user_sort_key(user, recent_chat_times):
+    last_message_at = recent_chat_times.get(user.id)
+    last_message_rank = -(last_message_at.timestamp()) if last_message_at else 0
+    return (
+        0 if last_message_at else 1,
+        last_message_rank,
+        0 if user.is_mentor else 1,
+        (user.full_name or "").lower(),
+    )
 
 
 def _message_rows(messages):
