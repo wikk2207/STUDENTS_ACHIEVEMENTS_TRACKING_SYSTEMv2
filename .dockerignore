@@ -1,0 +1,13 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+venv/
+.env
+instance/
+static/uploads/
+server.err.log
+server.out.log
+*.db
+*.db-shm
+*.db-wal
