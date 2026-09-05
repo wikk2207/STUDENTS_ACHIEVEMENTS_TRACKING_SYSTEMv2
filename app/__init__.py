@@ -70,7 +70,7 @@ def create_app(config_name=None):
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "info"
 
-    from app.routes import auth, main, mentor, student, api, voice, cert_dashboard, sara_api
+    from app.routes import auth, main, mentor, student, api, voice, cert_dashboard, sara_api, civic
     from app.services.sara_voice import VoiceSession  # noqa: F401
 
     app.register_blueprint(main.bp)
@@ -81,6 +81,7 @@ def create_app(config_name=None):
     app.register_blueprint(voice.bp, url_prefix="/voice")
     app.register_blueprint(cert_dashboard.bp)
     app.register_blueprint(sara_api.bp)
+    app.register_blueprint(civic.bp)
 
     @app.context_processor
     def inject_globals():
@@ -99,10 +100,18 @@ def create_app(config_name=None):
                 Notification.is_read.is_(False),
                 Notification.title.in_(["New Student Message", "Mentor Reply"]),
             ).count()
+        from flask import session
+        try:
+            from app.i18n import translate
+        except ModuleNotFoundError:
+            # Keep existing authentication pages renderable during legacy reloads.
+            translate = lambda text, language="en": text
+        language = (getattr(current_user, "preferred_language", None) if current_user.is_authenticated else None) or session.get("language", "en")
         return dict(
             unread_notifications=unread,
             unread_message_notifications=unread_messages,
             mail_configured=is_mail_configured(),
+            language=language, t=lambda text: translate(text, language),
         )
 
     with app.app_context():
@@ -166,6 +175,15 @@ def _ensure_schema_columns(app):
 
         if "users" in tables:
             user_cols = {column["name"] for column in insp.get_columns("users")}
+            civic_user_columns = {
+                "preferred_language": "VARCHAR(5)", "address_line": "VARCHAR(255)",
+                "locality": "VARCHAR(120)", "city": "VARCHAR(120)",
+                "district": "VARCHAR(120)", "state": "VARCHAR(120)", "pincode": "VARCHAR(12)",
+                "jurisdiction": "VARCHAR(120)", "office_location": "VARCHAR(255)",
+            }
+            for name, column_type in civic_user_columns.items():
+                if name not in user_cols:
+                    alters.append(f"ALTER TABLE users ADD COLUMN {name} {column_type}")
             mentor_columns = {
                 "mentor_designation": "VARCHAR(120)",
                 "mentor_organization": "VARCHAR(120)",

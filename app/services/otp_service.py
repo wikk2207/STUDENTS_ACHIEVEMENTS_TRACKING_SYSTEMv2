@@ -80,7 +80,11 @@ def send_otp_email(user, code, purpose="verification"):
     Otherwise store in session for on-screen display (development).
     Returns: (email_sent: bool, message: str)
     """
-    subject = "Skill Connect Verification Code"
+    if current_app.config.get("DEV_OTP_MODE"):
+        store_dev_otp(code)
+        return False, "Your verification code is shown below (valid for 10 minutes)."
+
+    subject = "CivicVoice Verification Code"
     if purpose == "login":
         subject = "Skill Connect Login OTP"
     elif purpose == "reset":

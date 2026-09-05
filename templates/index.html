@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set hide_sidebar = true %}
-{% block title %}Home{% endblock %}
+{% block title %}CivicVoice{% endblock %}
 {% block body_class %}landing-page{% endblock %}
 
 {% block content %}
@@ -34,22 +34,22 @@
   <div class="container">
     <div class="row align-items-center min-vh-100 py-5">
       <div class="col-lg-6 landing-copy">
-        <span class="badge glass-badge mb-3 orbitron-text landing-kicker">AI-Powered • Voice Enabled</span>
-        <h1 class="hero-title orbitron-text landing-title">Skill Connect</h1>
-        <p class="hero-subtitle landing-subtitle">Share skills, submit achievements, verify certificates with OCR, and track your academic journey — hands-free with voice commands.</p>
-        <div class="hero-actions d-flex flex-wrap gap-3 mt-4">
-          <a href="{{ url_for('auth.login') }}" class="btn btn-primary-neu btn-lg" data-voice-target="login">
-            <i class="bi bi-mortarboard"></i> Student Login
+        <span class="badge glass-badge mb-3 orbitron-text landing-kicker">Report. Track. Resolve.</span>
+        <h1 class="hero-title orbitron-text landing-title">CivicVoice</h1>
+        <p class="hero-subtitle landing-subtitle">Your Voice. Your City. Your Government. Report civic problems, track progress and stay connected with the department responsible for resolving them.</p>
+        <div class="hero-actions hero-auth-actions d-flex flex-wrap gap-3 mt-4">
+          <a href="{{ url_for('auth.login') }}" class="btn btn-secondary-neu btn-lg">
+            <i class="bi bi-person" aria-hidden="true"></i> Citizen Login
           </a>
-          <a href="{{ url_for('auth.mentor_login') }}" class="btn btn-secondary-neu btn-lg" data-voice-target="mentor-login">
-            <i class="bi bi-person-workspace"></i> Mentor Login
+          <a href="{{ url_for('auth.mentor_login') }}" class="btn btn-secondary-neu btn-lg">
+            <i class="bi bi-building-shield" aria-hidden="true"></i> Government Login
           </a>
-          <a href="{{ url_for('auth.register') }}" class="btn btn-secondary-neu btn-lg" data-voice-target="register">
-            <i class="bi bi-person-plus"></i> Register
+          <a href="{{ url_for('auth.register') }}" class="btn btn-primary-neu btn-lg">
+            <i class="bi bi-person-plus" aria-hidden="true"></i> Register as Citizen
           </a>
         </div>
         <div class="voice-commands-landing glass-panel mt-4 p-3" data-border-glow data-border-glow-radius="22" data-border-glow-glow-radius="28">
-          <p class="mb-2 fw-semibold"><i class="bi bi-mic-fill"></i> Try voice commands</p>
+          <p class="mb-2 fw-semibold"><i class="bi bi-mic-fill"></i> CivicVoice Assistant</p>
           <ul class="voice-cmd-list mb-0 small">
             <li>"Login"</li>
             <li>"Register me"</li>
@@ -68,10 +68,10 @@
           </div>
           <div class="cockpit-stage">
             <div class="cockpit-card cockpit-card-main">
-              <div class="card-icon"><i class="bi bi-award"></i></div>
+            <div class="card-icon"><i class="bi bi-cone-striped"></i></div>
               <div>
-                <strong>National Hackathon</strong>
-                <small>Achievement submitted</small>
+                <strong>Pothole reported</strong>
+                <small>Complaint submitted</small>
               </div>
               <span class="status-pill">Under Review</span>
             </div>
@@ -81,14 +81,14 @@
                 <span class="scan-line"></span>
               </div>
               <div>
-                <strong>OCR Match</strong>
-                <small>Certificate verified</small>
+                <strong>Department routing</strong>
+                <small>Roads &amp; Infrastructure</small>
               </div>
             </div>
             <div class="voice-card">
               <i class="bi bi-mic-fill"></i>
               <div class="voice-bars" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-              <strong>"Send OTP"</strong>
+              <strong>"Report a problem"</strong>
             </div>
             <div class="timeline-card">
               <span class="timeline-dot done"></span>
@@ -97,9 +97,9 @@
               <span class="timeline-line"></span>
               <span class="timeline-dot"></span>
               <div class="timeline-labels">
-                <small>Login</small>
-                <small>Upload</small>
-                <small>Approve</small>
+                <small>Report</small>
+                <small>Track</small>
+                <small>Resolve</small>
               </div>
             </div>
           </div>
@@ -113,27 +113,27 @@
 
 <section class="features-section py-5">
   <div class="container">
-    <h2 class="section-title text-center mb-5">Platform Features</h2>
+      <h2 class="section-title text-center mb-5">How CivicVoice Works</h2>
     <div class="row g-4">
       <div class="col-md-4">
         <div class="feature-card glass-panel neu-card" data-border-glow data-border-glow-animated="true">
           <i class="bi bi-mic-fill feature-icon"></i>
-          <h3>Voice Assistant</h3>
-          <p>Navigate, fill forms, and upload certificates using natural voice commands on every page.</p>
+          <h3>Report Issue</h3>
+          <p>Describe a civic problem with text, evidence or your voice.</p>
         </div>
       </div>
       <div class="col-md-4">
         <div class="feature-card glass-panel neu-card" data-border-glow data-border-glow-animated="true">
           <i class="bi bi-shield-check feature-icon"></i>
-          <h3>OCR Verification</h3>
-          <p>AI-powered certificate scanning with name matching and confidence scoring.</p>
+          <h3>Complaint ID Generated</h3>
+          <p>Receive a secure tracking ID and follow every update.</p>
         </div>
       </div>
       <div class="col-md-4">
         <div class="feature-card glass-panel neu-card" data-border-glow data-border-glow-animated="true">
           <i class="bi bi-graph-up-arrow feature-icon"></i>
-          <h3>Analytics &amp; Reports</h3>
-          <p>Dashboards, leaderboards, PDF portfolios, and Excel exports for students and mentors.</p>
+          <h3>Sent to Department</h3>
+          <p>Your complaint is routed to the responsible government department.</p>
         </div>
       </div>
     </div>
@@ -142,7 +142,7 @@
 
 <footer class="site-footer glass-panel mt-5">
   <div class="container py-4 text-center">
-    <p class="mb-0">&copy; 2026 Skill Connect — Skills, Achievements, and Activity Portfolio System</p>
+    <p class="mb-0">&copy; 2026 CivicVoice — Report. Track. Resolve.</p>
   </div>
 </footer>
 {% endblock %}

@@ -10,6 +10,54 @@ from app.models_message import Message
 def utcnow():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
+class Department(db.Model):
+    __tablename__ = "departments"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+    code = db.Column(db.String(30), unique=True, nullable=False)
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+class Complaint(db.Model):
+    __tablename__ = "complaints"
+    id = db.Column(db.Integer, primary_key=True)
+    tracking_id = db.Column(db.String(32), unique=True, nullable=False, index=True)
+    citizen_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(80), nullable=False)
+    subcategory = db.Column(db.String(80))
+    priority = db.Column(db.String(20), default="Normal", nullable=False)
+    status = db.Column(db.String(30), default="Submitted", nullable=False)
+    department_id = db.Column(db.Integer, db.ForeignKey("departments.id"))
+    assigned_officer_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    address = db.Column(db.String(255)); locality = db.Column(db.String(120)); city = db.Column(db.String(120))
+    district = db.Column(db.String(120)); state = db.Column(db.String(120)); pincode = db.Column(db.String(12))
+    latitude = db.Column(db.Float); longitude = db.Column(db.Float)
+    created_at = db.Column(db.DateTime, default=utcnow); updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+    resolved_at = db.Column(db.DateTime); resolution_summary = db.Column(db.Text)
+    citizen = db.relationship("User", foreign_keys=[citizen_id], backref="civic_complaints")
+    department = db.relationship("Department", backref="complaints")
+
+class ComplaintAttachment(db.Model):
+    __tablename__ = "complaint_attachments"
+    id = db.Column(db.Integer, primary_key=True); complaint_id = db.Column(db.Integer, db.ForeignKey("complaints.id"), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False); file_name = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False); attachment_type = db.Column(db.String(40), default="citizen_evidence"); created_at = db.Column(db.DateTime, default=utcnow)
+    complaint = db.relationship("Complaint", backref=db.backref("attachments", lazy="dynamic"))
+
+class ComplaintStatusHistory(db.Model):
+    __tablename__ = "complaint_status_history"
+    id = db.Column(db.Integer, primary_key=True); complaint_id = db.Column(db.Integer, db.ForeignKey("complaints.id"), nullable=False)
+    previous_status = db.Column(db.String(30)); new_status = db.Column(db.String(30), nullable=False); changed_by = db.Column(db.Integer, db.ForeignKey("users.id")); note = db.Column(db.Text); created_at = db.Column(db.DateTime, default=utcnow)
+    complaint = db.relationship("Complaint", backref=db.backref("status_history", lazy="dynamic", order_by="ComplaintStatusHistory.created_at"))
+
+class ComplaintFeedback(db.Model):
+    __tablename__ = "complaint_feedback"
+    id = db.Column(db.Integer, primary_key=True); complaint_id = db.Column(db.Integer, db.ForeignKey("complaints.id"), nullable=False, unique=True)
+    citizen_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False); rating = db.Column(db.Integer, nullable=False); comment = db.Column(db.Text); created_at = db.Column(db.DateTime, default=utcnow)
+
 # ...existing code...
 
 # Student-uploaded Report model
@@ -47,11 +95,16 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     mobile = db.Column(db.String(20))
+    preferred_language = db.Column(db.String(5), default="en")
+    address_line = db.Column(db.String(255))
+    locality = db.Column(db.String(120)); city = db.Column(db.String(120)); district = db.Column(db.String(120)); state = db.Column(db.String(120)); pincode = db.Column(db.String(12))
     password_hash = db.Column(db.String(256))
     role = db.Column(db.String(20), nullable=False, default="student")
     department = db.Column(db.String(80))
     year = db.Column(db.String(20))
     employee_id = db.Column(db.String(40))
+    jurisdiction = db.Column(db.String(120))
+    office_location = db.Column(db.String(255))
     roll_number = db.Column(db.String(40))
     profile_photo = db.Column(db.String(255))
     mentor_designation = db.Column(db.String(120))
@@ -84,11 +137,11 @@ class User(UserMixin, db.Model):
 
     @property
     def is_student(self):
-        return self.role == "student"
+        return self.role in ("student", "citizen")
 
     @property
     def is_mentor(self):
-        return self.role == "mentor"
+        return self.role in ("mentor", "government", "admin")
 
 
 @login_manager.user_loader

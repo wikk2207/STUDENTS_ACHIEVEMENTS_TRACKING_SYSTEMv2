@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="{% if current_user.is_authenticated and current_user.dark_mode %}dark{% else %}light{% endif %}">
+<html lang="{{ language }}" data-theme="{% if current_user.is_authenticated and current_user.dark_mode %}dark{% else %}light{% endif %}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,45 +44,36 @@
             <li class="{% if request.endpoint == 'student.dashboard' %}active{% endif %}">
               <a href="{{ url_for('student.dashboard') }}"><i class="bi bi-grid-1x2"></i><span class="gooey-label">Dashboard</span></a>
             </li>
-            <li class="{% if request.endpoint in ['student.achievements_list', 'student.achievement_add', 'student.achievement_edit'] %}active{% endif %}">
-              <a href="{{ url_for('student.achievements_list') }}"><i class="bi bi-trophy"></i><span class="gooey-label">Achievements</span></a>
+            <li class="{% if request.endpoint in ['civic.my_complaints'] %}active{% endif %}">
+              <a href="{{ url_for('civic.my_complaints') }}"><i class="bi bi-inbox"></i><span class="gooey-label">My Complaints</span></a>
             </li>
-            <li class="{% if request.endpoint in ['student.activities_list', 'student.activity_add', 'student.activity_edit'] %}active{% endif %}">
-              <a href="{{ url_for('student.activities_list') }}"><i class="bi bi-calendar-event"></i><span class="gooey-label">Activities</span></a>
+            <li>
+              <a href="{{ url_for('civic.track') }}"><i class="bi bi-search"></i><span class="gooey-label">Track Complaint</span></a>
               </li>
-            <li class="{% if request.endpoint == 'student.deadlines' %}active{% endif %}">
-              <a href="{{ url_for('student.deadlines') }}"><i class="bi bi-alarm"></i><span class="gooey-label">Deadlines</span></a>
+            <li>
+              <a href="{{ url_for('civic.citizen_analytics') }}"><i class="bi bi-graph-up"></i><span class="gooey-label">Analytics</span></a>
             </li>
             <li class="{% if request.endpoint in ['student.reports', 'student.export_excel_route', 'student.portfolio_pdf'] %}active{% endif %}">
-              <a href="{{ url_for('student.reports') }}"><i class="bi bi-file-earmark-bar-graph"></i><span class="gooey-label">Reports</span></a>
+              <a href="{{ url_for('civic.citizen_reports') }}"><i class="bi bi-file-earmark-bar-graph"></i><span class="gooey-label">Reports</span></a>
             </li>
             <li class="{% if request.endpoint == 'student.messages' %}active{% endif %}">
-              <a href="{{ url_for('student.messages') }}"><i class="bi bi-chat-dots"></i><span class="gooey-label">Mentor Chat</span>{% if unread_message_notifications %}<span class="message-badge ms-auto">{{ unread_message_notifications }}</span>{% endif %}</a>
-            </li>
-            <li class="{% if request.endpoint == 'student.public_portfolio' %}active{% endif %}">
-              <a href="{{ url_for('student.public_portfolio') }}"><i class="bi bi-share"></i><span class="gooey-label">Portfolio</span></a>
+              <a href="{{ url_for('student.messages') }}"><i class="bi bi-chat-dots"></i><span class="gooey-label">Government Messages</span>{% if unread_message_notifications %}<span class="message-badge ms-auto">{{ unread_message_notifications }}</span>{% endif %}</a>
             </li>
             {% else %}
-            <li class="{% if request.endpoint == 'mentor.dashboard' %}active{% endif %}">
-              <a href="{{ url_for('mentor.dashboard') }}"><i class="bi bi-speedometer2"></i><span class="gooey-label">Dashboard</span></a>
+            <li class="{% if request.endpoint == 'civic.government_dashboard' %}active{% endif %}">
+              <a href="{{ url_for('civic.government_dashboard') }}"><i class="bi bi-speedometer2"></i><span class="gooey-label">Dashboard</span></a>
             </li>
-            <li class="{% if request.endpoint in ['mentor.submissions', 'mentor.review_submission'] %}active{% endif %}">
-              <a href="{{ url_for('mentor.submissions') }}"><i class="bi bi-inbox"></i><span class="gooey-label">Submissions</span></a>
+            <li class="{% if request.endpoint == 'civic.government_queue' %}active{% endif %}">
+              <a href="{{ url_for('civic.government_queue') }}"><i class="bi bi-inbox"></i><span class="gooey-label">Complaint Queue</span></a>
               </li>
-            <li class="{% if request.endpoint == 'mentor.deadlines' %}active{% endif %}">
-              <a href="{{ url_for('mentor.deadlines') }}"><i class="bi bi-calendar2-plus"></i><span class="gooey-label">Deadlines</span></a>
-            </li>
-            <li class="{% if request.endpoint == 'mentor.analytics' %}active{% endif %}">
-              <a href="{{ url_for('mentor.analytics') }}"><i class="bi bi-graph-up"></i><span class="gooey-label">Analytics</span></a>
+            <li class="{% if request.endpoint == 'civic.analytics' %}active{% endif %}">
+              <a href="{{ url_for('civic.analytics') }}"><i class="bi bi-graph-up"></i><span class="gooey-label">Analytics</span></a>
             </li>
             <li class="{% if request.endpoint in ['mentor.reports', 'mentor.export_full_dataset', 'mentor.export_all_excel'] %}active{% endif %}">
               <a href="{{ url_for('mentor.reports') }}"><i class="bi bi-download"></i><span class="gooey-label">Reports</span></a>
             </li>
             <li class="{% if request.endpoint == 'mentor.messages' %}active{% endif %}">
               <a href="{{ url_for('mentor.messages') }}"><i class="bi bi-chat-dots"></i><span class="gooey-label">Messages</span>{% if unread_message_notifications %}<span class="message-badge ms-auto">{{ unread_message_notifications }}</span>{% endif %}</a>
-            </li>
-            <li class="{% if request.endpoint == 'mentor.leaderboard' %}active{% endif %}">
-              <a href="{{ url_for('mentor.leaderboard') }}"><i class="bi bi-award"></i><span class="gooey-label">Leaderboard</span></a>
             </li>
             {% endif %}
           </ul>
@@ -92,8 +83,9 @@
       </div>
     </nav>
     <div class="sidebar-footer">
-      <a href="{{ url_for('auth.profile') }}" class="nav-link"><i class="bi bi-person"></i> Profile</a>
-      <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger" data-voice-action="logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+      <div class="px-3 mb-2 small"><a href="{{ url_for('main.set_language', language='en') }}">English</a> · <a href="{{ url_for('main.set_language', language='hi') }}">हिन्दी</a> · <a href="{{ url_for('main.set_language', language='mr') }}">मराठी</a></div>
+      <a href="{{ url_for('auth.profile') }}" class="nav-link"><i class="bi bi-person"></i> {{ t('Profile') }}</a>
+      <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger" data-voice-action="logout"><i class="bi bi-box-arrow-right"></i> {{ t('Logout') }}</a>
     </div>
   </aside>
   {% endif %}
@@ -196,16 +188,15 @@
         forgotPassword: "{{ url_for('auth.forgot_password') }}",
         profile: "{{ url_for('auth.profile') }}",
         studentDashboard: "{{ url_for('student.dashboard') }}",
-        mentorDashboard: "{{ url_for('mentor.dashboard') }}",
+        mentorDashboard: "{{ url_for('civic.government_dashboard') if current_user.is_authenticated and current_user.is_mentor else '' }}",
         mentorLogin: "{{ url_for('auth.mentor_login') }}",
         commandSearch: "{{ url_for('api.commands_public') }}",
         achievementAdd: "{{ url_for('student.achievement_add') if current_user.is_authenticated and current_user.is_student else '' }}",
         activityAdd: "{{ url_for('student.activity_add') if current_user.is_authenticated and current_user.is_student else '' }}",
         achievements: "{{ url_for('student.achievements_list') if current_user.is_authenticated and current_user.is_student else '' }}",
         activities: "{{ url_for('student.activities_list') if current_user.is_authenticated and current_user.is_student else '' }}",
-        portfolio: "{{ url_for('student.public_portfolio') if current_user.is_authenticated and current_user.is_student else '' }}",
-        submissions: "{{ url_for('mentor.submissions') if current_user.is_authenticated and current_user.is_mentor else '' }}",
-        analytics: "{{ url_for('mentor.analytics') if current_user.is_authenticated and current_user.is_mentor else '' }}",
+        submissions: "{{ url_for('civic.government_queue') if current_user.is_authenticated and current_user.is_mentor else '' }}",
+        analytics: "{{ url_for('civic.analytics') if current_user.is_authenticated and current_user.is_mentor else '' }}",
         leaderboard: "{{ url_for('mentor.leaderboard') if current_user.is_authenticated and current_user.is_mentor else (url_for('api.leaderboard') if current_user.is_authenticated else '') }}",
         reports: "{{ url_for('student.reports') if current_user.is_authenticated and current_user.is_student else (url_for('mentor.reports') if current_user.is_authenticated else '') }}",
         messages: "{{ url_for('student.messages') if current_user.is_authenticated and current_user.is_student else (url_for('mentor.messages') if current_user.is_authenticated and current_user.is_mentor else '') }}",
@@ -223,6 +214,9 @@
     if (!window.SAAMS.isAuthenticated) {
       sessionStorage.removeItem('saams_welcomed_back');
     }
+  </script>
+  <script>
+  (function(){const lang={{ language|tojson }};if(lang==='en')return;const dict={hi:{'Dashboard':'डैशबोर्ड','My Complaints':'मेरी शिकायतें','Track Complaint':'शिकायत ट्रैक करें','Reports':'रिपोर्ट','Government Messages':'सरकारी संदेश','Profile':'प्रोफ़ाइल','Logout':'लॉग आउट','Citizen Details':'नागरिक विवरण','Name':'नाम','Email':'ईमेल','Roll Number':'रोल नंबर','Address':'पता','Welcome back,':'वापसी पर स्वागत है,','Report a Problem':'समस्या दर्ज करें','View History':'इतिहास देखें','Current Theme':'वर्तमान थीम','Badges & Level':'बैज और स्तर','Achievement Points':'उपलब्धि अंक','Total Achievements':'कुल उपलब्धियां','Total Activities':'कुल गतिविधियां','Pending Review':'समीक्षा लंबित','Approved':'स्वीकृत','Rejected':'अस्वीकृत','Download Portfolio PDF':'पोर्टफोलियो PDF डाउनलोड करें'},mr:{'Dashboard':'डॅशबोर्ड','My Complaints':'माझ्या तक्रारी','Track Complaint':'तक्रार ट्रॅक करा','Reports':'अहवाल','Government Messages':'सरकारी संदेश','Profile':'प्रोफाइल','Logout':'बाहेर पडा','Citizen Details':'नागरिक तपशील','Name':'नाव','Email':'ईमेल','Roll Number':'रोल नंबर','Address':'पत्ता','Report a Problem':'समस्या नोंदवा','View History':'इतिहास पहा','Current Theme':'सध्याची थीम','Approved':'मंजूर','Rejected':'नाकारणे'}}[lang]||{};document.querySelectorAll('body *').forEach(e=>{if(e.children.length===0){const v=e.textContent.trim();if(dict[v])e.textContent=e.textContent.replace(v,dict[v]);}if(e.placeholder&&dict[e.placeholder])e.placeholder=dict[e.placeholder]})})();
   </script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   <script src="{{ url_for('static', filename='js/upload.js') }}"></script>

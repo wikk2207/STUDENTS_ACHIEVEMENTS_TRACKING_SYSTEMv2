@@ -47,12 +47,10 @@ from app.utils.helpers import (
 bp = Blueprint("student", __name__)
 
 PROBLEM_TYPES = [
-    "Study Material",
-    "Achievement",
-    "Activity",
-    "Certificate Upload",
-    "Report",
-    "Account",
+    "Complaint Update",
+    "Location Information",
+    "Additional Evidence",
+    "General Question",
     "Other",
 ]
 PRIORITIES = ["Normal", "Urgent", "Low"]
@@ -115,7 +113,7 @@ def notifications():
 @bp.route("/messages", methods=["GET", "POST"])
 @student_required
 def messages():
-    chat_users = User.query.filter(User.id != current_user.id).order_by(User.role.desc(), User.full_name).all()
+    chat_users = User.query.filter(User.id != current_user.id, User.role.in_(["government", "mentor", "admin"])).order_by(User.full_name).all()
     recent_chat_times = _recent_chat_times(current_user.id)
     chat_users.sort(key=lambda user: _chat_user_sort_key(user, recent_chat_times))
     selected_mentor_id = request.values.get("mentor_id", type=int)
@@ -147,10 +145,10 @@ def messages():
             flash("This file type is not supported for chat sharing.", "danger")
             return redirect(url_for("student.messages", mentor_id=selected_mentor.id))
         if not body and not attachment_rel:
-            flash("Please write a message or attach a note/material.", "danger")
+            flash("Please write a message or attach an attachment.", "danger")
             return redirect(url_for("student.messages", mentor_id=selected_mentor.id))
         if not body:
-            body = "Shared a note or study material."
+            body = "Shared an attachment."
         display_subject = subject or problem_type
         message_body = _build_chat_body(
             body,
@@ -250,6 +248,8 @@ def mark_notification_unread(nid):
 @bp.route("/dashboard")
 @student_required
 def dashboard():
+    if current_user.role in ("citizen", "student"):
+        return redirect(url_for("civic.citizen_dashboard"))
     achievements = Achievement.query.filter_by(student_id=current_user.id).all()
     activities = Activity.query.filter_by(student_id=current_user.id).all()
     points = calculate_achievement_points(achievements)
@@ -581,6 +581,8 @@ def activity_delete(aid):
 @bp.route("/reports")
 @student_required
 def reports():
+    if current_user.role == "citizen":
+        return redirect(url_for("civic.citizen_reports"))
     return render_template("student/reports.html")
 
 

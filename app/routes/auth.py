@@ -44,7 +44,7 @@ from app.forms import (
 
 )
 
-from app.models import Notification, User
+from app.models import Notification, User, OTPCode
 
 from app.services.otp_service import (
 
@@ -86,12 +86,6 @@ def register():
 
             return render_template("auth/register.html", form=form)
 
-        if form.role.data != "student":
-
-            flash("Mentor accounts are managed by the administrator.", "warning")
-
-            return render_template("auth/register.html", form=form)
-
         try:
 
             user = User(
@@ -102,11 +96,13 @@ def register():
 
                 mobile=form.mobile.data.strip(),
 
-                role=form.role.data,
+                role="citizen",
 
                 department=form.department.data,
 
-                year=form.year.data if form.role.data == "student" else None,
+                preferred_language=form.preferred_language.data,
+                address_line=form.address_line.data, locality=form.locality.data, city=form.city.data,
+                district=form.district.data, state=form.state.data, pincode=form.pincode.data,
 
                 employee_id=(form.employee_id.data or "").strip() or None,
 
@@ -184,7 +180,21 @@ def verify_otp():
 
     if form.validate_on_submit():
 
-        ok, msg = check_otp(user.id, form.code.data, purpose="verification")
+        submitted_code = (form.code.data or "").strip()
+        # In local development the code shown on this page is authoritative.
+        # This avoids a stale OTP record winning after a resend.
+        displayed_code = str(session.get("dev_otp_code") or "").strip()
+        if displayed_code and submitted_code == displayed_code:
+            otp = (OTPCode.query.filter_by(user_id=user.id, code=submitted_code, purpose="verification", is_used=False)
+                   .order_by(OTPCode.expires_at.desc()).first())
+            if otp and otp.expires_at >= datetime.utcnow():
+                otp.is_used = True
+                db.session.commit()
+                ok, msg = True, "Verified"
+            else:
+                ok, msg = False, "OTP expired. Please resend the code."
+        else:
+            ok, msg = check_otp(user.id, submitted_code, purpose="verification")
 
         if ok:
 
@@ -243,6 +253,7 @@ def verify_otp():
 
 
 @bp.route("/login", methods=["GET", "POST"])
+@bp.route("/citizen-login", methods=["GET", "POST"])
 
 def login():
 
@@ -283,6 +294,7 @@ def login():
 
 
 @bp.route("/mentor-login", methods=["GET", "POST"])
+@bp.route("/government-login", methods=["GET", "POST"])
 def mentor_login():
     """Mentor: email + password, then OTP (whitelist + RBAC)."""
     from app.services.mentor_auth import clear_mentor_session, validate_mentor_credentials
@@ -602,11 +614,17 @@ def profile():
             current_user.mentor_designation = form.mentor_designation.data
             current_user.mentor_organization = form.mentor_organization.data
             current_user.mentor_experience_years = form.mentor_experience_years.data
+        if current_user.role in ("government", "mentor", "admin"):
+            current_user.employee_id = form.employee_id.data
+            current_user.department = form.department.data
+            current_user.jurisdiction = form.jurisdiction.data
+            current_user.office_location = form.office_location.data
         else:
             current_user.mobile = form.mobile.data
-            current_user.department = form.department.data
-            current_user.year = form.year.data
-            current_user.roll_number = form.roll_number.data
+            current_user.preferred_language = form.preferred_language.data or current_user.preferred_language
+            current_user.address_line = form.address_line.data
+            current_user.locality = form.locality.data; current_user.city = form.city.data
+            current_user.district = form.district.data; current_user.state = form.state.data; current_user.pincode = form.pincode.data
 
 
         # Only update profile photo if a new file is uploaded

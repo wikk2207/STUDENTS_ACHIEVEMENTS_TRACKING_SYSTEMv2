@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% set hide_sidebar = true %}
-{% block title %}Mentor Login{% endblock %}
+{% block title %}Government Login{% endblock %}
 {% block content %}
 <div class="auth-shell">
   <div class="auth-card surface-card auth-glow-card">
     <div class="mb-3">
       <span class="badge bg-primary-subtle text-primary"><i class="bi bi-shield-lock"></i> Faculty access</span>
-      <h2 class="mt-2 mb-1">Mentor Login</h2>
-      <p class="text-muted small mb-0">Email and password, then OTP verification. Only whitelisted mentors can access the panel.</p>
+      <h2 class="mt-2 mb-1">Government Login</h2>
+      <p class="text-muted small mb-0">Official email and password, followed by OTP verification for authorized government officers.</p>
     </div>
     <form method="post" novalidate>
       {{ form.hidden_tag() }}
       <div class="mb-3">
         {{ form.email.label(class="form-label") }}
-        {{ form.email(class="form-control", placeholder="mentor@college.edu", type="email", data_voice_field="email", autocomplete="username") }}
+        {{ form.email(class="form-control", placeholder="official@government.gov", type="email", data_voice_field="email", autocomplete="username") }}
         {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
       </div>
       <div class="mb-3">
@@ -29,7 +29,7 @@
       {{ form.submit(class="btn btn-primary w-100", value="Continue to OTP") }}
     </form>
     <div class="text-center mt-3 small">
-      <a href="{{ url_for('auth.login') }}">Student login</a> ·
+      <a href="{{ url_for('auth.login') }}">Citizen login</a> ·
       <a href="{{ url_for('main.index') }}">Home</a>
     </div>
   </div>

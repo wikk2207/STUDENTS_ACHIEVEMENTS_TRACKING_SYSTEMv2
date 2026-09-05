@@ -31,13 +31,14 @@ class RegistrationForm(FlaskForm):
             Regexp(r"^[\d\s\-\+()]{10,15}$", message="Enter a valid 10-digit mobile number"),
         ],
     )
-    role = SelectField(
-        "Role",
-        choices=[("student", "Student")],
-        default="student",
-        validators=[DataRequired()],
-    )
-    department = StringField("Department", validators=[DataRequired(), Length(2, 80)])
+    preferred_language = SelectField("Preferred Language", choices=[("en", "English"), ("hi", "Hindi"), ("mr", "Marathi")], default="en")
+    address_line = StringField("Address", validators=[Optional(), Length(max=255)])
+    locality = StringField("Locality", validators=[Optional(), Length(max=120)])
+    city = StringField("City", validators=[Optional(), Length(max=120)])
+    district = StringField("District", validators=[Optional(), Length(max=120)])
+    state = StringField("State", validators=[Optional(), Length(max=120)])
+    pincode = StringField("Pincode", validators=[Optional(), Length(max=12)])
+    department = StringField("Department", validators=[Optional(), Length(max=80)])
     year = SelectField(
         "Year",
         choices=[
@@ -66,12 +67,6 @@ class RegistrationForm(FlaskForm):
 
     def validate(self, extra_validators=None):
         if not super().validate(extra_validators=extra_validators):
-            return False
-        if self.role.data == "student" and not self.year.data:
-            self.year.errors.append("Please select your year of study.")
-            return False
-        if self.role.data == "mentor" and not (self.employee_id.data or "").strip():
-            self.employee_id.errors.append("Employee ID is required for mentors.")
             return False
         return True
 
@@ -250,6 +245,16 @@ class ClassroomPostForm(FlaskForm):
 class ProfileForm(FlaskForm):
     full_name = StringField("Full Name", validators=[DataRequired(), Length(2, 120)])
     mobile = StringField("Mobile", validators=[Optional()])
+    preferred_language = SelectField("Preferred Language", choices=[("en", "English"), ("hi", "Hindi"), ("mr", "Marathi")], validators=[Optional()])
+    address_line = StringField("Address", validators=[Optional(), Length(max=255)])
+    locality = StringField("Locality", validators=[Optional(), Length(max=120)])
+    city = StringField("City", validators=[Optional(), Length(max=120)])
+    district = StringField("District", validators=[Optional(), Length(max=120)])
+    state = StringField("State", validators=[Optional(), Length(max=120)])
+    pincode = StringField("Pincode", validators=[Optional(), Length(max=12)])
+    employee_id = StringField("Employee ID", validators=[Optional(), Length(max=40)])
+    jurisdiction = StringField("Jurisdiction", validators=[Optional(), Length(max=120)])
+    office_location = StringField("Office Location", validators=[Optional(), Length(max=255)])
     department = StringField("Department", validators=[Optional()])
     year = StringField("Year", validators=[Optional()])
     roll_number = StringField("Roll Number", validators=[Optional()])

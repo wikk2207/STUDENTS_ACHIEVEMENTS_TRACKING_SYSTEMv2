@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Mentor Chat{% endblock %}
+{% block title %}Government Messages{% endblock %}
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
   <div>
-    <h1>Mentor Chat</h1>
-    <p class="text-muted mb-0">Connect with mentors and students, view skills, and share study materials.</p>
+    <h1>Government Messages</h1>
+    <p class="text-muted mb-0">Communicate securely with the government department handling your complaint.</p>
   </div>
   <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
 </div>
@@ -154,12 +154,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="row g-4">
   <div class="col-lg-4">
     <div class="glass-panel neu-card p-3">
-      <h5 class="mb-3"><i class="bi bi-send"></i> New Message / Notes</h5>
+      <h5 class="mb-3"><i class="bi bi-send"></i> New Government Message</h5>
       {% if mentors %}
       <form method="post" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="mb-3">
-          <label for="mentor_id" class="form-label">Connect With Friend / Mentor</label>
+          <label for="mentor_id" class="form-label">Government Officer</label>
           <select name="mentor_id" id="mentor_id" class="form-select" onchange="window.location='{{ url_for('student.messages') }}?mentor_id=' + this.value">
             {% for mentor in mentors %}
             <option value="{{ mentor.id }}" {% if selected_mentor and mentor.id == selected_mentor.id %}selected{% endif %}>{{ mentor.full_name }} · {{ mentor.role|title }}</option>
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         {% endif %}
         <div class="mb-3">
-          <label for="problem_type" class="form-label">Message Type</label>
+          <label for="problem_type" class="form-label">Message Topic</label>
           <select name="problem_type" id="problem_type" class="form-select" required>
             {% for problem_type in problem_types %}
             <option value="{{ problem_type }}">{{ problem_type }}</option>
@@ -220,10 +220,10 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <div class="mb-3">
           <label for="body" class="form-label">Message</label>
-          <textarea name="body" id="body" class="form-control" rows="5" placeholder="Write your message or describe the study material"></textarea>
+          <textarea name="body" id="body" class="form-control" rows="5" placeholder="Write an update or question about your complaint"></textarea>
         </div>
         <div class="mb-3">
-          <label for="attachment" class="form-label">Notes / Study Material / Attachment</label>
+          <label for="attachment" class="form-label">Complaint Evidence / Attachment</label>
           <input type="file" name="attachment" id="attachment" class="form-control" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.png,.jpg,.jpeg,.gif,.webp,.mp4,.webm,.mov,.mkv,.avi,.mp3,.wav,.m4a">
           <small class="text-muted">PDF, images, MP4/video, audio, Word, PPT, Excel, ZIP, and text files are supported.</small>
         </div>
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <button class="btn btn-neu" type="submit"><i class="bi bi-search"></i></button>
       </form>
       <div class="shared-materials glass-panel p-3 mb-3">
-        <h6 class="mb-2"><i class="bi bi-folder2-open"></i> Shared Notes & Study Materials</h6>
+        <h6 class="mb-2"><i class="bi bi-folder2-open"></i> Shared Complaint Evidence</h6>
         <div class="d-flex flex-wrap gap-2">
           {% for row in shared_materials %}
           {% set m = row.message %}
@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <span class="text-muted small">from {{ m.sender.full_name }}</span>
           </a>
           {% else %}
-          <span class="text-muted small">No study materials shared yet.</span>
+          <span class="text-muted small">No complaint evidence shared yet.</span>
           {% endfor %}
         </div>
       </div>

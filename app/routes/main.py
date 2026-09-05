@@ -1,7 +1,7 @@
 import json
 import os
 
-from flask import Blueprint, current_app, jsonify, render_template, redirect, url_for
+from flask import Blueprint, current_app, jsonify, render_template, redirect, url_for, session, request
 from flask_login import current_user
 from sqlalchemy import text
 
@@ -9,6 +9,16 @@ from app import db
 from app.models import Achievement, Certificate, ClassroomPost, User
 
 bp = Blueprint("main", __name__)
+
+@bp.route("/language/<language>")
+def set_language(language):
+    if language not in ("en", "hi", "mr"): language = "en"
+    session["language"] = language
+    if current_user.is_authenticated:
+        current_user.preferred_language = language
+        from app import db
+        db.session.commit()
+    return redirect(request.referrer or url_for("main.index"))
 
 
 @bp.route("/")
@@ -32,12 +42,12 @@ def mentor_login_redirect():
 def dashboard_redirect():
     if not current_user.is_authenticated:
         return redirect(url_for("auth.login"))
-    if current_user.is_mentor:
+    if current_user.role in ("government", "mentor", "admin"):
         from app.services.mentor_auth import mentor_session_verified
         if not mentor_session_verified():
             return redirect(url_for("auth.mentor_verify_otp"))
-        return redirect(url_for("mentor.dashboard"))
-    return redirect(url_for("student.dashboard"))
+        return redirect(url_for("civic.government_dashboard"))
+    return redirect(url_for("civic.citizen_dashboard"))
 
 
 @bp.route("/access-denied")

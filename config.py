@@ -12,6 +12,8 @@ def normalize_database_url(url):
 
 
 class Config:
+    # Local development displays OTP on the verification page instead of sending mail.
+    DEV_OTP_MODE = os.environ.get("DEV_OTP_MODE", "true").lower() == "true"
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
     SQLALCHEMY_DATABASE_URI = normalize_database_url(
         os.environ.get(

@@ -78,25 +78,28 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="glass-panel neu-card card-3d p-4">
       <h5 class="mb-3">Update your information</h5>
       <form method="post" enctype="multipart/form-data">{{ form.hidden_tag() }}
-        {% if current_user.is_mentor %}
+        {% if current_user.role in ['government', 'mentor', 'admin'] %}
           {% set profile_fields = [
             form.profile_photo,
             form.full_name,
+            form.employee_id,
+            form.mobile,
+            form.department,
             form.mentor_designation,
-            form.mentor_organization,
-            form.mentor_experience_years,
-            form.mentor_skills,
-            form.mentor_bio
+            form.jurisdiction,
+            form.office_location
           ] %}
         {% else %}
           {% set profile_fields = [
             form.full_name,
             form.mobile,
-            form.department,
-            form.year,
-            form.roll_number,
-            form.mentor_skills,
-            form.mentor_bio,
+            form.preferred_language,
+            form.address_line,
+            form.locality,
+            form.city,
+            form.district,
+            form.state,
+            form.pincode,
             form.profile_photo
           ] %}
         {% endif %}

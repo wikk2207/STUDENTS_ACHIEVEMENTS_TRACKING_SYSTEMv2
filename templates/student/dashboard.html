@@ -8,8 +8,7 @@
     <p class="text-muted mb-0">Your achievements are saved — pick up where you left off</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
-    <a href="{{ url_for('student.achievement_add') }}" class="btn btn-primary-neu"><i class="bi bi-plus-lg"></i> Add Achievement</a>
-    <a href="{{ url_for('student.activity_add') }}" class="btn btn-secondary-neu">Add Activity</a>
+    <a href="{{ url_for('civic.report_problem') }}" class="btn btn-primary-neu"><i class="bi bi-megaphone"></i> Report a Problem</a>
     <button id="themeSwitcher" class="btn btn-neu" type="button" title="Switch Theme"><i class="bi bi-palette"></i> B/W Theme</button>
   </div>
 {# Theme Switcher Script #}
@@ -85,19 +84,16 @@ document.addEventListener('DOMContentLoaded', function() {
     points=stats.points
   ) }}
   <div class="profile-card-details profile-glass glass-panel neu-card card-3d p-4">
-    <h5 class="mb-3"><i class="bi bi-person-vcard"></i> Your Details</h5>
+    <h5 class="mb-3"><i class="bi bi-person-vcard"></i> Citizen Details</h5>
     <div class="row g-2 small">
       <div class="col-sm-6"><span class="text-muted">Email</span><br><strong>{{ current_user.email }}</strong></div>
-      <div class="col-sm-6"><span class="text-muted">Mobile</span><br><strong>{{ current_user.mobile or '—' }}</strong></div>
-      <div class="col-sm-6"><span class="text-muted">Department</span><br><strong>{{ current_user.department or '—' }}</strong></div>
-      <div class="col-sm-6"><span class="text-muted">Year / Roll</span><br><strong>{{ current_user.year or '—' }} · {{ current_user.roll_number or '—' }}</strong></div>
-      <div class="col-sm-6"><span class="text-muted">Member since</span><br><strong>{{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else '—' }}</strong></div>
-      <div class="col-sm-6"><span class="text-muted">Achievement Points</span><br><strong class="text-primary">{{ stats.points }} pts</strong></div>
+      <div class="col-sm-6"><span class="text-muted">Name</span><br><strong>{{ current_user.full_name }}</strong></div>
+      <div class="col-sm-6"><span class="text-muted">Roll Number</span><br><strong>{{ current_user.roll_number or '—' }}</strong></div>
+      <div class="col-12"><span class="text-muted">Address</span><br><strong>{{ current_user.address_line or '—' }}{% if current_user.locality %}, {{ current_user.locality }}{% endif %}{% if current_user.city %}, {{ current_user.city }}{% endif %}{% if current_user.state %}, {{ current_user.state }}{% endif %}{% if current_user.pincode %} - {{ current_user.pincode }}{% endif %}</strong></div>
     </div>
     <div class="d-flex flex-wrap gap-2 mt-4">
       <a href="{{ url_for('auth.profile') }}" class="btn btn-neu btn-sm">Edit Profile</a>
       <a href="{{ url_for('student.achievements_list') }}" class="btn btn-primary-neu btn-sm">View History</a>
-      <a href="{{ url_for('student.public_portfolio') }}" class="btn btn-secondary-neu btn-sm">Portfolio</a>
     </div>
   </div>
 </div>
@@ -130,9 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="glass-panel neu-card mb-4 p-3">
   <h5 class="mb-3">Quick Actions</h5>
   <div class="d-flex flex-wrap gap-2">
-    <a href="{{ url_for('student.achievement_add') }}" class="btn btn-neu btn-sm">Add Achievement</a>
-    <a href="{{ url_for('student.activity_add') }}" class="btn btn-neu btn-sm">Add Activity</a>
-    <a href="{{ url_for('student.achievement_add') }}" class="btn btn-neu btn-sm">Upload Certificate</a>
+    <a href="{{ url_for('civic.report_problem') }}" class="btn btn-neu btn-sm">Report a Problem</a>
     <a href="{{ url_for('student.achievements_list') }}" class="btn btn-neu btn-sm">View History</a>
     <a href="{{ url_for('student.portfolio_pdf') }}" class="btn btn-neu btn-sm">Download Portfolio</a>
     <a href="{{ url_for('student.reports') }}" class="btn btn-neu btn-sm">Reports</a>
